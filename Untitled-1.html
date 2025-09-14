@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Focus</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        #app {
+            position: relative;
+        }
+
+        .screen {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+            pointer-events: none;
+            z-index: 5;
+        }
+        .screen.is-active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        button {
+            transition: transform 0.1s ease-out, background-color 0.2s ease;
+        }
+        button:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+        @keyframes modal-bounce-in {
+            0% { transform: scale(0.9); opacity: 0; }
+            70% { transform: scale(1.02); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes ticket-wobble {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-1deg); }
+            50% { transform: rotate(1deg); }
+            75% { transform: rotate(-0.5deg); }
+            100% { transform: rotate(0deg); }
+        }
+        @keyframes page-flip {
+            0% { transform: rotateY(-30deg); opacity: 0.5; }
+            100% { transform: rotateY(0deg); opacity: 1; }
+        }
+
+        .leaflet-popup-content-wrapper { background-color: #1f2937; color: #f3f4f6; border-radius: 8px; }
+        .leaflet-popup-content { margin: 12px 18px; font-size: 14px; }
+        .leaflet-popup-tip { background: #1f2937; }
+        .leaflet-tooltip { background-color: #1f2937; color: #f3f4f6; border: 1px solid #374151; border-radius: 4px; box-shadow: none; padding: 6px 10px; font-size: 12px; }
+        .leaflet-tooltip-top:before { border-top-color: #374151; }
+        .inflight-tooltip { background-color: #1f2937e0; color: #f3f4f6; border: none; border-radius: 4px; box-shadow: none; padding: 4px 8px; font-size: 12px; font-weight: 500; }
+        .leaflet-tooltip-top.inflight-tooltip::before { display: none; }
+        .leaflet-control-zoom-in, .leaflet-control-zoom-out { background-color: #374151 !important; color: #f9fafb !important; border-color: #4b5563 !important; }
+        .leaflet-control-zoom-in:hover, .leaflet-control-zoom-out:hover { background-color: #4b5563 !important; }
+
+        .boarding-pass-container {
+            perspective: 1200px;
+        }
+        .wobble-animation {
+            animation: ticket-wobble 0.5s ease-in-out;
+        }
+        @keyframes tear-top-realistic {
+            0% { transform: rotateZ(0) rotateX(0) translateY(0); opacity: 1; }
+            100% { transform: rotateZ(-15deg) rotateX(20deg) translateY(-150%) translateX(-20%); opacity: 0; }
+        }
+        @keyframes tear-bottom-realistic {
+            0% { transform: rotateZ(0) rotateX(0) translateY(0); opacity: 1; }
+            100% { transform: rotateZ(12deg) rotateX(-15deg) translateY(150%) translateX(20%); opacity: 0; }
+        }
+        .tear-top-animation {
+            transform-origin: top center;
+            animation: tear-top-realistic 1.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) 0.5s forwards;
+        }
+        .tear-bottom-animation {
+            transform-origin: bottom center;
+            animation: tear-bottom-realistic 1.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) 0.5s forwards;
+        }
+
+        /* Passport-specific styles */
+        .passport-container {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .passport-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" opacity="0.1"%3E%3Cpath fill="none" stroke="%23ffffff" stroke-width="2" d="M50,20 a30,30 0 0,1 0,60 a30,30 0 0,1 0,-60 M50,30 a20,20 0 0,1 0,40 a20,20 0 0,1 0,-40 M30,50 h40" /%3E%3C/svg%3E');
+            opacity: 0.1;
+        }
+        .passport-page {
+            background: #f5f5f5;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+            transform-origin: left;
+            animation: page-flip 0.5s ease forwards;
+        }
+        .passport-entry {
+            border: 2px dashed #4b5563;
+            border-radius: 8px;
+            padding: 12px;
+            background: #e5e7eb;
+            font-family: 'Roboto Mono', monospace;
+            position: relative;
+            overflow: hidden;
+        }
+        .passport-entry::before {
+            content: 'VISA';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 12px;
+            color: #9ca3af;
+            transform: rotate(45deg);
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white antialiased flex items-center justify-center min-h-screen">
+    <div id="app" class="w-full h-screen flex flex-col">
+
+        <div id="planning-screen" class="screen flex flex-col h-full">
+            <header class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-b border-gray-700">
+                <h1 class="text-2xl font-bold text-center">✈️ Flight Focus</h1>
+                <p id="planning-instructions" class="text-center text-gray-400 mt-1">Select your departure airport from the map.</p>
+            </header>
+            <div id="map-planning" class="flex-grow z-0"></div>
+            <footer class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
+                <div id="flight-info-planning" class="text-sm text-gray-300 mb-2 h-5"></div>
+                <div class="flex justify-center gap-4">
+                    <button id="next-to-seating-btn" disabled class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed">
+                        Proceed to Gate
+                    </button>
+                    <button id="view-passport-btn" class="bg-purple-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-purple-700">
+                        View Passport
+                    </button>
+                </div>
+            </footer>
+        </div>
+
+        <div id="seating-screen" class="screen flex flex-col h-full items-center justify-center p-4 bg-gray-800">
+            <h2 class="text-3xl font-bold mb-2">Select Your Seat & Task</h2>
+            <p class="text-gray-400 mb-6">Your seat represents your primary task for this focus session.</p>
+            <div class="w-full max-w-sm bg-gray-900 p-4 rounded-xl shadow-lg border border-gray-700">
+                <div class="mb-4">
+                    <label for="focus-task-input" class="block text-sm font-medium text-gray-300 mb-2">Focus Task:</label>
+                    <input type="text" id="focus-task-input" placeholder="e.g., Finish Q3 report" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div id="seat-map-container" class="bg-gray-700 p-4 rounded-lg overflow-y-auto max-h-80">
+                    <div class="text-center text-xs text-gray-400 mb-2">A320 Cabin</div>
+                    <div id="seat-map" class="grid grid-cols-7 gap-1.5 justify-center"></div>
+                </div>
+                <div id="seat-info" class="text-center mt-4 text-lg font-semibold h-6"></div>
+            </div>
+            <button id="start-focus-btn" disabled class="mt-6 bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed">
+                Take Off
+            </button>
+        </div>
+
+        <div id="ticket-animation-screen" class="screen flex flex-col h-full items-center justify-center p-4 bg-gray-900">
+            <div id="boarding-pass-container" class="boarding-pass-container w-full max-w-sm">
+                <div id="ticket-top" class="bg-white text-gray-800 p-4 rounded-t-2xl shadow-xl border-b-2 border-dashed border-gray-400" style="font-family: 'Roboto Mono', monospace;">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm text-gray-500">Boarding Pass</span>
+                        <span class="text-lg font-bold text-blue-600">Flight Focus</span>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <p class="text-xs text-gray-500">From</p>
+                            <p id="ticket-departure" class="text-4xl font-bold">---</p>
+                        </div>
+                        <span class="text-2xl text-gray-400">✈️</span>
+                        <div>
+                            <p class="text-xs text-gray-500 text-right">To</p>
+                            <p id="ticket-arrival" class="text-4xl font-bold">---</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="ticket-bottom" class="bg-white text-gray-800 p-4 rounded-b-2xl shadow-xl" style="font-family: 'Roboto Mono', monospace;">
+                    <p class="text-xs text-gray-500">Focus Task</p>
+                    <p id="ticket-task" class="text-md font-bold truncate mb-3">Your Task Here</p>
+                    <div class="flex justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500">Seat</p>
+                            <p id="ticket-seat" class="text-lg font-bold">--</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Duration</p>
+                            <p id="ticket-duration" class="text-lg font-bold">--:--:--</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="inflight-screen" class="screen flex flex-col h-full">
+            <div id="inflight-dashboard" class="p-4 bg-gray-800/70 backdrop-blur-md z-10 border-b border-gray-700 grid grid-cols-3 gap-4 items-center">
+                <div class="text-left" style="opacity: 0;">
+                    <div class="text-sm text-gray-400">Time Remaining</div>
+                    <div id="time-left" class="text-2xl font-bold" style="animation: pulse 2.5s infinite ease-in-out;">--:--:--</div>
+                </div>
+                <div class="text-center" style="opacity: 0;">
+                    <div class="text-sm text-gray-400">Route</div>
+                    <div id="route-info" class="text-2xl font-bold">--- → ---</div>
+                </div>
+                <div class="text-right" style="opacity: 0;">
+                    <div class="text-sm text-gray-400">Distance</div>
+                    <div id="distance-info" class="text-2xl font-bold">0 / 0 km</div>
+                </div>
+            </div>
+            <div id="map-inflight" class="flex-grow z-0"></div>
+            <footer class="p-4 bg-gray-800/70 backdrop-blur-md z-10 border-t border-gray-700 text-center">
+                <button id="end-flight-btn" class="bg-red-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-red-700">
+                    Land Early
+                </button>
+            </footer>
+        </div>
+
+        <div id="passport-screen" class="screen flex flex-col h-full bg-gray-900">
+            <header class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-b border-gray-700">
+                <h1 class="text-2xl font-bold text-center">🛂 Your Passport</h1>
+                <p class="text-center text-gray-400 mt-1">A record of your focus flights</p>
+            </header>
+            <div id="passport-entries" class="flex-grow p-6 overflow-y-auto">
+                <div class="passport-container max-w-4xl mx-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-white" style="font-family: 'Roboto Mono', monospace;">Flight Focus Passport</h2>
+                        <div class="text-sm text-gray-300">Issue Date: 2025-09-13</div>
+                    </div>
+                    <div id="passport-list" class="grid grid-cols-2 gap-4 passport-page"></div>
+                </div>
+            </div>
+            <footer class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
+                <button id="back-to-planning-btn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700">
+                    Back to Planning
+                </button>
+            </footer>
+        </div>
+        
+        <div id="arrival-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+            <div class="bg-gray-800 text-white p-8 rounded-xl shadow-2xl text-center max-w-md mx-4" id="arrival-modal-content" style="opacity:0;">
+                <h2 class="text-3xl font-bold mb-2">🛬 You've Landed!</h2>
+                <p id="arrival-airport-text" class="text-xl text-blue-400 mb-4"></p>
+                <div class="bg-gray-700 p-4 rounded-lg">
+                    <p class="text-gray-300">You successfully focused on:</p>
+                    <p id="arrival-task-text" class="text-lg font-semibold my-2"></p>
+                    <p id="arrival-duration-text" class="text-gray-400"></p>
+                </div>
+                <button id="plan-new-flight-btn" class="mt-6 bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700">
+                    Plan Another Flight
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const screens = {
+            planning: document.getElementById('planning-screen'),
+            seating: document.getElementById('seating-screen'),
+            inflight: document.getElementById('inflight-screen'),
+            ticket: document.getElementById('ticket-animation-screen'),
+            passport: document.getElementById('passport-screen')
+        };
+        const allScreens = document.querySelectorAll('.screen');
+        const modal = document.getElementById('arrival-modal');
+        const modalContent = document.getElementById('arrival-modal-content');
+        
+        const boardingPassContainer = document.getElementById('boarding-pass-container');
+        const ticketTop = document.getElementById('ticket-top');
+        const ticketBottom = document.getElementById('ticket-bottom');
+
+        const planningMapEl = document.getElementById('map-planning');
+        const inflightMapEl = document.getElementById('map-inflight');
+        const planningInstructions = document.getElementById('planning-instructions');
+        const flightInfoPlanning = document.getElementById('flight-info-planning');
+        const nextToSeatingBtn = document.getElementById('next-to-seating-btn');
+        const viewPassportBtn = document.getElementById('view-passport-btn');
+        
+        const seatMapContainer = document.getElementById('seat-map');
+        const focusTaskInput = document.getElementById('focus-task-input');
+        const seatInfo = document.getElementById('seat-info');
+        const startFocusBtn = document.getElementById('start-focus-btn');
+        
+        const inflightDashboardItems = document.querySelectorAll('#inflight-dashboard > div');
+        const timeLeftEl = document.getElementById('time-left');
+        const routeInfoEl = document.getElementById('route-info');
+        const distanceInfoEl = document.getElementById('distance-info');
+        const endFlightBtn = document.getElementById('end-flight-btn');
+
+        const arrivalAirportText = document.getElementById('arrival-airport-text');
+        const arrivalTaskText = document.getElementById('arrival-task-text');
+        const arrivalDurationText = document.getElementById('arrival-duration-text');
+        const planNewFlightBtn = document.getElementById('plan-new-flight-btn');
+        
+        const passportList = document.getElementById('passport-list');
+        const backToPlanningBtn = document.getElementById('back-to-planning-btn');
+
+        // --- State Management ---
+        let state = {
+            airports: [],
+            currentScreen: 'planning',
+            departure: null,
+            arrival: null,
+            selectedSeat: null,
+            focusTask: '',
+            flightDistance: 0,
+            focusDuration: 0,
+            timerInterval: null,
+            startTime: null,
+            passport: []
+        };
+        
+        // --- Maps ---
+        let planningMap, inflightMap;
+        let airportMarkers = [];
+        let routeLine, planeMarker;
+
+        // --- Passport Functions ---
+        function saveFlightToPassport(completed) {
+            const focusedTime = Date.now() - state.startTime;
+            const flightRecord = {
+                id: Date.now(),
+                departure: state.departure,
+                arrival: state.arrival,
+                task: state.focusTask,
+                seat: state.selectedSeat,
+                duration: completed ? state.focusDuration : focusedTime,
+                distance: state.flightDistance,
+                completed: completed,
+                date: new Date().toISOString()
+            };
+            state.passport.push(flightRecord);
+            localStorage.setItem('flightFocusPassport', JSON.stringify(state.passport));
+        }
+
+        function loadPassport() {
+            const savedPassport = localStorage.getItem('flightFocusPassport');
+            if (savedPassport) {
+                state.passport = JSON.parse(savedPassport);
+            }
+        }
+
+        function displayPassport() {
+            passportList.innerHTML = '';
+            if (state.passport.length === 0) {
+                passportList.innerHTML = '<p class="text-gray-400 text-center col-span-2">No flights recorded yet.</p>';
+                return;
+            }
+            state.passport.forEach((flight, index) => {
+                const entry = document.createElement('div');
+                entry.classList.add('passport-entry', 'text-gray-800', 'opacity-0');
+                entry.style.animation = `fadeInUp 0.5s ease forwards ${index * 0.1}s`;
+                entry.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold">${new Date(flight.date).toLocaleDateString()}</span>
+                        <span class="text-xs font-semibold ${flight.completed ? 'text-green-600' : 'text-yellow-600'}">
+                            ${flight.completed ? 'COMPLETED' : 'DIVERTED'}
+                        </span>
+                    </div>
+                    <p class="text-sm font-bold">${flight.departure.code} → ${flight.arrival.code}</p>
+                    <p class="text-xs">Task: ${flight.task}</p>
+                    <p class="text-xs">Seat: ${flight.seat}</p>
+                    <p class="text-xs">Duration: ${formatTime(flight.duration)}</p>
+                    <p class="text-xs">Distance: ${Math.round(flight.distance)} km</p>
+                `;
+                passportList.appendChild(entry);
+            });
+        }
+
+        // --- Utility Functions ---
+        function switchScreen(screenName) {
+            const newScreen = screens[screenName];
+            if (!newScreen) return;
+
+            allScreens.forEach(s => s.classList.remove('is-active'));
+            newScreen.classList.add('is-active');
+            state.currentScreen = screenName;
+            
+            if (screenName === 'seating') {
+                const seats = document.querySelectorAll('#seat-map > button');
+                seats.forEach((seat, index) => {
+                    seat.style.opacity = 0;
+                    seat.style.animation = `fadeInUp 0.5s ease forwards ${index * 0.005}s`;
+                });
+            } else if (screenName === 'inflight') {
+                inflightDashboardItems.forEach((item, index) => {
+                    item.style.opacity = 0;
+                    item.style.animation = `fadeInUp 0.6s ease forwards ${0.2 + index * 0.2}s`;
+                });
+            } else if (screenName === 'passport') {
+                displayPassport();
+            }
+        }
+        
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+        
+        function calculateFlightTime(distance) {
+            const averageSpeedKmh = 850;
+            const hours = distance / averageSpeedKmh;
+            return hours * 60 * 60 * 1000;
+        }
+        
+        function formatTime(ms) {
+            if (ms < 0) ms = 0;
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
+        // --- Initialization ---
+        function init() {
+            loadPassport();
+            parseAirportData();
+            initPlanningMap();
+            generateSeatMap();
+            addEventListeners();
+            switchScreen('planning');
+        }
+
+        function parseAirportData() {
+            const csvText = `name,code,lat,lng
+Hartsfield-Jackson Atlanta Int'l,ATL,33.6407,-84.4277
+Beijing Capital Int'l,PEK,40.0801,116.5845
+Dubai Int'l,DXB,25.2532,55.3657
+Los Angeles Int'l,LAX,33.9416,-118.4085
+Tokyo Haneda Airport,HND,35.5494,139.7798
+O'Hare Int'l Airport,ORD,41.9742,-87.9073
+London Heathrow Airport,LHR,51.4700,-0.4543
+Hong Kong Int'l Airport,HKG,22.3080,113.9185
+Shanghai Pudong Int'l,PVG,31.1444,121.8053
+Paris-Charles de Gaulle Airport,CDG,49.0097,2.5479
+Amsterdam Airport Schiphol,AMS,52.3105,4.7683
+Dallas/Fort Worth Int'l,DFW,32.8998,-97.0403
+Guangzhou Baiyun Int'l,CAN,23.3924,113.2988
+Frankfurt Airport,FRA,50.0379,8.5622
+Istanbul Airport,IST,41.2753,28.7519
+Indira Gandhi Int'l Airport,DEL,28.5562,77.1000
+Soekarno-Hatta Int'l,CGK,-6.1256,106.6559
+Singapore Changi Airport,SIN,1.3644,103.9915
+Suvarnabhumi Airport,BKK,13.6900,100.7501
+Incheon Int'l Airport,ICN,37.4602,126.4407
+Denver Int'l Airport,DEN,39.8561,-104.6737
+John F. Kennedy Int'l Airport,JFK,40.6413,-73.7781
+Kuala Lumpur Int'l Airport,KUL,2.7456,101.7072
+Madrid Barajas Airport,MAD,40.4983,-3.5676
+San Francisco Int'l Airport,SFO,37.6213,-122.3790
+Chengdu Shuangliu Int'l,CTU,30.5785,103.9483
+Shenzhen Bao'an Int'l,SZX,22.6393,113.8113
+Chhatrapati Shivaji Maharaj Int'l,BOM,19.0896,72.8656
+Toronto Pearson Int'l Airport,YYZ,43.6777,-79.6248
+Seattle-Tacoma Int'l Airport,SEA,47.4502,-122.3088
+McCarran Int'l Airport,LAS,36.0840,-115.1537
+Orlando Int'l Airport,MCO,28.4312,-81.3081
+Mexico City Int'l Airport,MEX,19.4363,-99.0721
+Sydney Airport,SYD,-33.9399,151.1753
+Munich Airport,MUC,48.3537,11.7861
+Leonardo da Vinci-Fiumicino Airport,FCO,41.8003,12.2388
+Taiwan Taoyuan Int'l Airport,TPE,25.0805,121.2328
+Sao Paulo-Guarulhos Int'l Airport,GRU,-23.4356,-46.4731
+Vancouver Int'l Airport,YVR,49.1967,-123.1815
+Hamad Int'l Airport,DOH,25.2731,51.6081
+Ninoy Aquino Int'l Airport,MNL,14.5086,121.0194
+Dublin Airport,DUB,53.4264,-6.2499
+Zurich Airport,ZRH,47.4515,8.5619
+Copenhagen Airport,CPH,55.6180,12.6508
+Oslo Airport, Gardermoen,OSL,60.1976,11.1004
+Stockholm Arlanda Airport,ARN,59.6519,17.9186
+Helsinki-Vantaa Airport,HEL,60.3172,24.9633
+Vienna Int'l Airport,VIE,48.1103,16.5697
+Brussels Airport,BRU,50.9014,4.4844
+Athens Int'l Airport,ATH,37.9364,23.9444
+Lisbon Portela Airport,LIS,38.7742,-9.1342
+Warsaw Chopin Airport,WAW,52.1657,20.9671
+Prague Vaclav Havel Airport,PRG,50.1008,14.2631
+Budapest Ferenc Liszt Int'l Airport,BUD,47.4399,19.2550
+Jomo Kenyatta Int'l Airport,NBO,-1.3192,36.9275
+Cape Town Int'l Airport,CPT,-33.9648,18.6017
+O. R. Tambo Int'l Airport,JNB,-26.1392,28.2461
+Cairo Int'l Airport,CAI,30.1219,31.4056
+Murtala Muhammed Int'l Airport,LOS,6.5774,3.3211
+King Abdulaziz Int'l Airport,JED,21.6796,39.1565
+Ben Gurion Airport,TLV,32.0095,34.8769
+Queen Alia Int'l Airport,AMM,31.7226,35.9932
+Bogota El Dorado Int'l Airport,BOG,4.7016,-74.1469
+Santiago Int'l Airport,SCL,-33.3930,-70.7858
+Buenos Aires-Ezeiza Int'l Airport,EZE,-34.8222,-58.5358
+Lima Jorge Chavez Int'l Airport,LIM,-12.0219,-77.1143
+Auckland Airport,AKL,-37.0082,174.7917
+Christchurch Int'l Airport,CHC,-43.4894,172.5322
+Perth Airport,PER,-31.9403,115.9669
+Brisbane Airport,BNE,-27.3842,153.1175
+Melbourne Airport,MEL,-37.6733,144.8433
+Adelaide Airport,ADL,-34.9450,138.5306
+Calgary Int'l Airport,YYC,51.1215,-114.0133
+Montreal-Pierre Elliott Trudeau Int'l Airport,YUL,45.4706,-73.7408
+Edmonton Int'l Airport,YEG,53.3097,-113.5797
+Halifax Stanfield Int'l Airport,YHZ,44.8808,-63.5086
+Ottawa Macdonald-Cartier Int'l Airport,YOW,45.3225,-75.6692
+Winnipeg James Armstrong Richardson Int'l Airport,YWG,49.9100,-97.2399
+LaGuardia Airport,LGA,40.7769,-73.8740
+Newark Liberty Int'l Airport,EWR,40.6895,-74.1745
+Boston Logan Int'l Airport,BOS,42.3656,-71.0096
+Philadelphia Int'l Airport,PHL,39.8722,-75.2424
+Charlotte Douglas Int'l Airport,CLT,35.2144,-80.9431
+Miami Int'l Airport,MIA,25.7959,-80.2870
+Phoenix Sky Harbor Int'l Airport,PHX,33.4343,-112.0116
+Detroit Metropolitan Airport,DTW,42.2125,-83.3533
+Minneapolis-Saint Paul Int'l Airport,MSP,44.8820,-93.2218
+Salt Lake City Int'l Airport,SLC,40.7884,-111.9778
+Portland Int'l Airport,PDX,45.5898,-122.5951
+San Diego Int'l Airport,SAN,32.7338,-117.1933
+Tampa Int'l Airport,TPA,27.9755,-82.5332
+Honolulu Daniel K. Inouye Int'l Airport,HNL,21.3187,-157.9224
+Anchorage Ted Stevens Int'l Airport,ANC,61.1744,-149.9983
+Narita Int'l Airport,NRT,35.7647,140.3863
+Kansai Int'l Airport,KIX,34.4272,135.2442
+Fukuoka Airport,FUK,33.5862,130.4507
+New Chitose Airport,CTS,42.7753,141.6923
+Naha Airport,OKA,26.1958,127.6458
+Gimhae Int'l Airport,PUS,35.1794,128.9381
+Jeju Int'l Airport,CJU,33.5114,126.4928
+Gimpo Int'l Airport,GMP,37.5583,126.7906
+Tan Son Nhat Int'l Airport,SGN,10.8189,106.6519
+Noi Bai Int'l Airport,HAN,21.2212,105.8072
+Da Nang Int'l Airport,DAD,16.0439,108.1994
+Phuket Int'l Airport,HKT,8.1132,98.3169
+Chiang Mai Int'l Airport,CNX,18.7669,98.9625
+Kota Kinabalu Int'l Airport,BKI,5.9364,116.0503
+Penang Int'l Airport,PEN,5.2972,100.2769
+Brunei Int'l Airport,BWN,4.9442,114.9283
+Yangon Int'l Airport,RGN,16.9073,96.1332
+Phnom Penh Int'l Airport,PNH,11.5466,104.8441
+Wattay Int'l Airport,VTE,17.9881,102.5633
+Tribhuvan Int'l Airport,KTM,27.6967,85.3592
+Paro Airport,PBH,27.4032,89.4246
+Velana Int'l Airport,MLE,4.1918,73.5291
+Bandaranaike Int'l Airport,CMB,7.1802,79.8847
+Cochin Int'l Airport,COK,10.1520,76.4019
+Kempegowda Int'l Airport,BLR,13.1986,77.7063
+Chennai Int'l Airport,MAA,12.9941,80.1809
+Netaji Subhas Chandra Bose Int'l Airport,CCU,22.6547,88.4467
+Islamabad Int'l Airport,ISB,33.5492,72.8256
+Jinnah Int'l Airport,KHI,24.9073,67.1608
+Allama Iqbal Int'l Airport,LHE,31.5216,74.4036
+Shahjalal Int'l Airport,DAC,23.8433,90.4005
+Muscat Int'l Airport,MCT,23.5933,58.2844
+Abu Dhabi Int'l Airport,AUH,24.4330,54.6511
+Sharjah Int'l Airport,SHJ,25.3286,55.5172
+Bahrain Int'l Airport,BAH,26.2708,50.6336
+Kuwait Int'l Airport,KWI,29.2267,47.9689
+King Khalid Int'l Airport,RUH,24.9576,46.6988
+King Fahd Int'l Airport,DMM,26.4712,49.7979
+Doha Int'l Airport,DIA,25.2611,51.5650
+London Gatwick Airport,LGW,51.1537,-0.1821
+Manchester Airport,MAN,53.3537,-2.2749
+Berlin Brandenburg Airport,BER,52.3667,13.5033
+Barcelona-El Prat Airport,BCN,41.2974,2.0833
+Palma de Mallorca Airport,PMI,39.5517,2.7388
+Malaga Airport,AGP,36.6749,-4.4991
+Geneva Airport,GVA,46.2382,6.1089
+Milan Malpensa Airport,MXP,45.6306,8.7281
+Rome Ciampino Airport,CIA,41.7994,12.5949
+Antalya Airport,AYT,36.8987,30.8005
+Sabiha Gokcen Int'l Airport,SAW,40.8986,29.3092
+Keflavik Int'l Airport,KEF,63.9850,-22.6056
+Reykjavik Airport,RKV,64.1300,-21.9406
+Baltimore/Washington Int'l Airport,BWI,39.1774,-76.6684
+Washington Dulles Int'l Airport,IAD,38.9531,-77.4565
+Ronald Reagan Washington National Airport,DCA,38.8512,-77.0402
+Fort Lauderdale-Hollywood Int'l Airport,FLL,26.0726,-80.1528
+George Bush Intercontinental Airport,IAH,29.9902,-95.3368
+Chicago Midway Int'l Airport,MDW,41.7868,-87.7522
+Nashville Int'l Airport,BNA,36.1263,-86.6774
+Austin-Bergstrom Int'l Airport,AUS,30.1975,-97.6664
+Dallas Love Field,DAL,32.8471,-96.8518
+Houston Hobby Airport,HOU,29.6454,-95.2789
+St. Louis Lambert Int'l Airport,STL,38.7487,-90.3700
+Kansas City Int'l Airport,MCI,39.2976,-94.7139
+Indianapolis Int'l Airport,IND,39.7173,-86.2944
+Cleveland Hopkins Int'l Airport,CLE,41.4117,-81.8498
+Pittsburgh Int'l Airport,PIT,40.4915,-80.2329
+Cincinnati/Northern Kentucky Int'l Airport,CVG,39.0488,-84.6678
+Raleigh-Durham Int'l Airport,RDU,35.8776,-78.7875
+San Jose Int'l Airport,SJC,37.3639,-121.9289
+Oakland Int'l Airport,OAK,37.7126,-122.2197
+Sacramento Int'l Airport,SMF,38.6954,-121.5908
+John Wayne Airport, Orange County,SNA,33.6763,-117.8675
+Albuquerque Int'l Sunport,ABQ,35.0402,-106.6091
+El Paso Int'l Airport,ELP,31.8071,-106.3776
+Louis Armstrong New Orleans Int'l Airport,MSY,29.9934,-90.2592
+Cancun Int'l Airport,CUN,21.0365,-86.8771
+Guadalajara Int'l Airport,GDL,20.5218,-103.3111
+Monterrey Int'l Airport,MTY,25.7785,-100.1169
+Tijuana Int'l Airport,TIJ,32.5411,-116.9702
+Rio de Janeiro-Galeao Int'l Airport,GIG,-22.8100,-43.2505
+Brasilia Int'l Airport,BSB,-15.8711,-47.9186
+Recife/Guararapes-Gilberto Freyre Int'l Airport,REC,-8.1265,-34.9230
+Salvador-Deputado Luis Eduardo Magalhaes Int'l Airport,SSA,-12.9112,-38.3311
+Addis Ababa Bole Int'l Airport,ADD,8.9779,38.7993
+Algiers Houari Boumediene Airport,ALG,36.6910,3.2154
+Casablanca Mohammed V Int'l Airport,CMN,33.3675,-7.5899
+Marrakech-Menara Airport,RAK,31.6069,-8.0363
+Tunis-Carthage Int'l Airport,TUN,36.8510,10.2272
+Tripoli Int'l Airport,TIP,32.6635,13.1593
+Wellington Int'l Airport,WLG,-41.3272,174.8052
+Queenstown Airport,ZQN,-45.0212,168.7390
+Nadi Int'l Airport,NAN,-17.7554,177.4436
+Papeete Faa'a Int'l Airport,PPT,-17.5564,-149.6067
+Nice Cote d'Azur Airport,NCE,43.6653,7.2150
+Lyon-Saint Exupery Airport,LYS,45.7256,5.0811
+Marseille Provence Airport,MRS,43.4367,5.2150
+Toulouse-Blagnac Airport,TLS,43.6350,1.3639
+Bordeaux-Merignac Airport,BOD,44.8283,-0.6914
+Nantes Atlantique Airport,NTE,47.1532,-1.6107
+Lille Airport,LIL,50.5633,3.0869
+Strasbourg Airport,SXB,48.5422,7.6281
+Hamburg Airport,HAM,53.6304,9.9882
+Dusseldorf Airport,DUS,51.2895,6.7668
+Cologne Bonn Airport,CGN,50.8659,7.1427
+Stuttgart Airport,STR,48.6899,9.2219
+Hannover Airport,HAJ,52.4611,9.6851
+Nuremberg Airport,NUE,49.4987,11.0669
+Leipzig/Halle Airport,LEJ,51.4239,12.2364
+Dresden Airport,DRS,51.1328,13.7672
+Bremen Airport,BRE,53.0475,8.7867
+Dortmund Airport,DTM,51.5183,7.6122
+Frankfurt-Hahn Airport,HHN,49.9487,7.2639
+Edinburgh Airport,EDI,55.9500,-3.3725
+Glasgow Airport,GLA,55.8719,-4.4325
+Belfast Int'l Airport,BFS,54.6575,-6.2158
+Birmingham Airport,BHX,52.4539,-1.7480
+Bristol Airport,BRS,51.3827,-2.7191
+London Stansted Airport,STN,51.8850,0.2350
+London Luton Airport,LTN,51.8747,-0.3683
+London City Airport,LCY,51.5053,0.0553
+Liverpool John Lennon Airport,LPL,53.3336,-2.8497
+Leeds Bradford Airport,LBA,53.8658,-1.6606
+Newcastle Int'l Airport,NCL,55.0375,-1.6917
+Aberdeen Airport,ABZ,57.2019,-2.1978
+Inverness Airport,INV,57.5425,-4.0475
+Cork Airport,ORK,51.8413,-8.4911
+Shannon Airport,SNN,52.7020,-8.9248
+Ibiza Airport,IBZ,38.8729,1.3731
+Alicante-Elche Airport,ALC,38.2822,-0.5581
+Valencia Airport,VLC,39.4893,-0.4816
+Seville Airport,SVQ,37.4180,-5.8931
+Bilbao Airport,BIO,43.3011,-2.9106
+Tenerife South Airport,TFS,28.0445,-16.5725
+Gran Canaria Airport,LPA,27.9319,-15.3866
+Lanzarote Airport,ACE,28.9455,-13.6052
+Fuerteventura Airport,FUE,28.4527,-13.8638
+Porto Airport,OPO,41.2481,-8.6814
+Faro Airport,FAO,37.0144,-7.9659
+Madeira Airport,FNC,32.6979,-16.7745
+Ponta Delgada Airport,PDL,37.7412,-25.6979
+Malta Int'l Airport,MLA,35.8575,14.4775
+Larnaca Int'l Airport,LCA,34.8751,33.6249
+Paphos Int'l Airport,PFO,34.7180,32.4857
+Heraklion Int'l Airport,HER,35.3397,25.1804
+Thessaloniki Airport,SKG,40.5197,22.9709
+Rhodes Int'l Airport,RHO,36.4049,28.0861
+Corfu Int'l Airport,CFU,39.6019,19.9117
+Mykonos Airport,JMK,37.4351,25.3481
+Santorini (Thira) Int'l Airport,JTR,36.3992,25.4793
+Split Airport,SPU,43.5389,16.2981
+Dubrovnik Airport,DBV,42.5614,18.2682
+Zagreb Airport,ZAG,45.7429,16.0688
+Belgrade Nikola Tesla Airport,BEG,44.8184,20.3091
+Sofia Airport,SOF,42.6950,23.4114
+Bucharest Henri Coanda Int'l Airport,OTP,44.5711,26.0850
+Kiev Boryspil Int'l Airport,KBP,50.3450,30.8947
+Lviv Danylo Halytskyi Int'l Airport,LWO,49.8125,23.9561
+Minsk National Airport,MSQ,53.8824,28.0307
+Riga Int'l Airport,RIX,56.9236,23.9711
+Vilnius Airport,VNO,54.6341,25.2858
+Tallinn Airport,TLL,59.4133,24.8328
+Pulkovo Airport,LED,59.8003,30.2625
+Domodedovo Int'l Airport,DME,55.4088,37.9063
+Sheremetyevo Int'l Airport,SVO,55.9726,37.4146
+Vnukovo Int'l Airport,VKO,55.5915,37.2615
+Kazan Int'l Airport,KZN,55.6062,49.2787
+Sochi Int'l Airport,AER,43.4499,39.9571
+Koltsovo Airport,SVX,56.7431,60.8027
+Tolmachevo Airport,OVB,55.0128,82.6507
+Krasnoyarsk Int'l Airport,KJA,56.1731,92.4920
+Irkutsk Int'l Airport,IKT,52.2678,104.3561
+Khabarovsk Novy Airport,KHV,48.5280,135.1880
+Vladivostok Int'l Airport,VVO,43.3831,132.1492
+Manas Int'l Airport,FRU,43.0613,74.4776
+Almaty Int'l Airport,ALA,43.3521,77.0405
+Nursultan Nazarbayev Int'l Airport,NQZ,51.0222,71.4669
+Tashkent Int'l Airport,TAS,41.2575,69.2813
+Heydar Aliyev Int'l Airport,GYD,40.4675,50.0467
+Tbilisi Int'l Airport,TBS,41.6692,44.9547
+Zvartnots Int'l Airport,EVN,40.1472,44.3959
+Baghdad Int'l Airport,BGW,33.2625,44.2345
+Tehran Imam Khomeini Int'l Airport,IKA,35.4161,51.1522
+Erbil Int'l Airport,EBL,36.2375,43.9632
+Beirut-Rafic Hariri Int'l Airport,BEY,33.8209,35.4884
+Damascus Int'l Airport,DAM,33.4106,36.5146
+Amman Civil Airport,ADJ,31.9744,35.9903
+Aqaba King Hussein Int'l Airport,AQJ,29.6117,35.0181
+Sharm El Sheikh Int'l Airport,SSH,27.9772,34.3947
+Hurghada Int'l Airport,HRG,27.1785,33.8000
+Luxor Int'l Airport,LXR,25.6709,32.7065
+Bole Int'l Airport,ADD,8.9779,38.7993
+Accra Kotoka Int'l Airport,ACC,5.6052,-0.1667
+Dakar Blaise Diagne Int'l Airport,DSS,14.6725,-17.0753
+Abidjan Port Bouet Airport,ABJ,5.2614,-3.9263
+Nairobi Wilson Airport,WIL,-1.3217,36.8142
+Kilimanjaro Int'l Airport,JRO,-3.4294,37.0744
+Zanzibar Abeid Amani Karume Int'l Airport,ZNZ,-6.2220,39.2249
+Dar es Salaam Julius Nyerere Int'l Airport,DAR,-6.8781,39.2025
+Maputo Int'l Airport,MPM,-25.9208,32.5726
+Harare Robert Gabriel Mugabe Int'l Airport,HRE,-17.9318,31.0929
+Lusaka Kenneth Kaunda Int'l Airport,LUN,-15.3308,28.4526
+Gaborone Sir Seretse Khama Int'l Airport,GBE,-24.5552,25.9182
+Windhoek Hosea Kutako Int'l Airport,WDH,-22.4799,17.4710
+Luanda Quatro de Fevereiro Airport,LAD,-8.8583,13.2312
+Kinshasa N'djili Airport,FIH,-4.3858,15.4447
+Lagos Murtala Muhammed Airport,LOS,6.5774,3.3211
+Abuja Nnamdi Azikiwe Int'l Airport,ABV,9.0068,7.2632
+Kano Mallam Aminu Kano Int'l Airport,KAN,12.0475,8.5246
+Port Harcourt Int'l Airport,PHC,5.0155,6.9497
+Ouagadougou Airport,OUA,12.3533,-1.5124
+Bamako-Senou Int'l Airport,BKO,12.5336,-7.9500
+Conakry Int'l Airport,CKY,9.5769,-13.6120
+Freetown Lungi Int'l Airport,FNA,8.6164,-13.1956
+Monrovia Roberts Int'l Airport,ROB,6.2338,-10.3622
+Banjul Int'l Airport,BJL,13.3380,-16.6522
+Praia Nelson Mandela Int'l Airport,RAI,14.9245,-23.4935
+Sao Tome Int'l Airport,TMS,0.3781,6.7121
+Malabo Int'l Airport,SSG,3.7553,8.7086
+Douala Int'l Airport,DLA,4.0061,9.7196
+Yaounde Nsimalen Int'l Airport,NSI,3.7225,11.5531
+Libreville Leon M'ba Int'l Airport,LBV,0.4586,9.4122
+Brazzaville Maya-Maya Airport,BZV,-4.2517,15.2528
+Pointe-Noire Airport,PNR,-4.8142,11.8867
+N'Djamena Int'l Airport,NDJ,12.1337,15.0342
+Bangui M'Poko Int'l Airport,BGF,4.3982,18.5191
+Djibouti-Ambouli Int'l Airport,JIB,11.5472,43.1592
+Asmara Int'l Airport,ASM,15.2919,38.9108
+Khartoum Int'l Airport,KRT,15.5895,32.5532
+Juba Int'l Airport,JUB,4.8720,31.6011
+Entebbe Int'l Airport,EBB,0.0424,32.4435
+Kigali Int'l Airport,KGL,-1.9686,30.1394
+Bujumbura Int'l Airport,BJM,-3.3238,29.3185
+Lilongwe Kamuzu Int'l Airport,LLW,-13.7889,33.7808
+Antananarivo Ivato Int'l Airport,TNR,-18.7969,47.4788
+Mauritius Sir Seewoosagur Ramgoolam Int'l Airport,MRU,-20.4302,57.6836
+Saint-Denis Roland Garros Airport,RUN,-20.8873,55.5130
+Moroni Prince Said Ibrahim Int'l Airport,HAH,-11.5333,43.2719
+Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
+            try {
+                const lines = csvText.trim().split('\n');
+                lines.shift();
+                state.airports = lines.map(line => {
+                    const values = line.split(',');
+                    const lng = parseFloat(values.pop());
+                    const lat = parseFloat(values.pop());
+                    const code = values.pop();
+                    const name = values.join(',');
+                    return { name, code, lat, lng };
+                });
+            } catch (error) {
+                console.error("Failed to parse airport data:", error);
+                planningInstructions.textContent = "Error: Could not load airport data.";
+            }
+        }
+
+        function initPlanningMap() {
+            planningMap = L.map('map-planning').setView([20, 0], 2);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(planningMap);
+
+            const airportIcon = L.divIcon({
+                html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="color: #3b82f6; width: 32px; height: 32px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));">
+                    <path fill-rule="evenodd" d="M12 2.25c-3.996 0-7.25 3.254-7.25 7.25 0 4.38 3.585 9.15 6.463 11.932a.75.75 0 001.074 0C15.665 18.65 19.25 13.88 19.25 9.5c0-3.996-3.254-7.25-7.25-7.25zM12 11a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" />
+                </svg>`,
+                className: '',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32]
+            });
+
+            state.airports.forEach(airport => {
+                const marker = L.marker([airport.lat, airport.lng], { icon: airportIcon })
+                    .addTo(planningMap)
+                    .bindPopup(`<b>${airport.name} (${airport.code})</b>`)
+                    .bindTooltip(airport.name, { direction: 'top', offset: L.point(0, -32) })
+                    .on('click', () => onAirportClick(airport));
+                airportMarkers.push(marker);
+            });
+        }
+        
+        function initInflightMap() {
+            if (inflightMap) {
+                inflightMap.remove();
+                inflightMap = null;
+            }
+            inflightMap = L.map('map-inflight');
+            inflightMap.invalidateSize();
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors & CARTO',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(inflightMap);
+
+            const bounds = L.latLngBounds([
+                [state.departure.lat, state.departure.lng],
+                [state.arrival.lat, state.arrival.lng]
+            ]);
+            inflightMap.fitBounds(bounds, { padding: [50, 50] });
+            
+            const inflightAirportIcon = L.divIcon({
+                html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="color: #38bdf8; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7));">
+                    <path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.1.42-.25.692-.455.272-.204.58-.479.869-.819.289-.34.546-.72.758-1.139.213-.419.35-.882.414-1.393.065-.512.074-1.043.028-1.598a8.94 8.94 0 00-.424-2.22c-.228-.556-.52-1.07-.88-1.532-.36-.463-.785-.875-1.255-1.22a.75.75 0 00-.968-.065A8.94 8.94 0 005 8.5c0 .555.01.11.028.166.064.511.2.974.414 1.393.212.419.47.799.758 1.139.289-.34.597.615.869-.819.272.205.506.355.692.455a5.741 5.741 0 00.281.14l.018.008.006.003zM10 11.25a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" clip-rule="evenodd" />
+                </svg>`,
+                className: '', iconSize: [20, 20], iconAnchor: [10, 20]
+            });
+            
+            [state.departure, state.arrival].forEach(airport => {
+                L.marker([airport.lat, airport.lng], { icon: inflightAirportIcon })
+                    .addTo(inflightMap)
+                    .bindTooltip(`${airport.code}`, { permanent: true, direction: 'top', offset: L.point(0, -20), className: 'inflight-tooltip' });
+            });
+
+            routeLine = L.polyline([[state.departure.lat, state.departure.lng], [state.arrival.lat, state.arrival.lng]], { color: '#3b82f6', weight: 3 }).addTo(inflightMap);
+            
+            const planeIcon = L.divIcon({
+                html: '<div style="transform: rotate(0deg);" id="plane-icon-div">✈️</div>',
+                className: 'text-3xl', iconSize: [32, 32], iconAnchor: [16, 16]
+            });
+            planeMarker = L.marker([state.departure.lat, state.departure.lng], { icon: planeIcon }).addTo(inflightMap);
+        }
+        
+        function generateSeatMap() {
+            const rows = 30;
+            const seatLetters = ['A', 'B', 'C', '', 'D', 'E', 'F'];
+            for (let i = 1; i <= rows; i++) {
+                seatLetters.forEach(letter => {
+                    if (letter === '') {
+                        const aisle = document.createElement('div');
+                        aisle.textContent = i;
+                        aisle.classList.add('text-gray-500', 'text-xs', 'flex', 'items-center', 'justify-center');
+                        seatMapContainer.appendChild(aisle);
+                    } else {
+                        const seat = document.createElement('button');
+                        const seatId = `${i}${letter}`;
+                        seat.id = `seat-${seatId}`;
+                        seat.dataset.seatId = seatId;
+                        seat.classList.add('w-6', 'h-6', 'bg-gray-500', 'rounded-md', 'text-xs', 'font-mono', 'hover:bg-blue-500', 'opacity-0');
+                        seat.addEventListener('click', () => onSeatSelect(seatId));
+                        seatMapContainer.appendChild(seat);
+                    }
+                });
+            }
+        }
+        
+        // --- Event Handlers & Logic ---
+        function onAirportClick(airport) {
+            if (!state.departure) {
+                state.departure = airport;
+                planningInstructions.textContent = `Departure: ${airport.code}. Now select an arrival airport.`;
+                flightInfoPlanning.textContent = `From: ${airport.name}`;
+            } else if (!state.arrival && airport.code !== state.departure.code) {
+                state.arrival = airport;
+                planningInstructions.textContent = `Flight planned: ${state.departure.code} → ${state.arrival.code}. Ready to proceed.`;
+                state.flightDistance = calculateDistance(state.departure.lat, state.departure.lng, state.arrival.lat, state.arrival.lng);
+                state.focusDuration = calculateFlightTime(state.flightDistance);
+                flightInfoPlanning.textContent = `Route: ${state.departure.code} to ${state.arrival.code} | Distance: ${Math.round(state.flightDistance)} km | Est. Focus Time: ${formatTime(state.focusDuration)}`;
+                nextToSeatingBtn.disabled = false;
+            }
+        }
+
+        function onSeatSelect(seatId) {
+            if (state.selectedSeat) {
+                document.getElementById(`seat-${state.selectedSeat}`).classList.remove('bg-blue-500', 'text-white');
+                document.getElementById(`seat-${state.selectedSeat}`).classList.add('bg-gray-500');
+            }
+            state.selectedSeat = seatId;
+            const seatEl = document.getElementById(`seat-${seatId}`);
+            seatEl.classList.remove('bg-gray-500');
+            seatEl.classList.add('bg-blue-500', 'text-white');
+            seatInfo.textContent = `Seat ${seatId} selected.`;
+            updateStartButtonState();
+        }
+
+        function updateStartButtonState() {
+            state.focusTask = focusTaskInput.value;
+            startFocusBtn.disabled = !(state.selectedSeat && state.focusTask.trim() !== '');
+        }
+        
+        function startFocusSession() {
+            document.getElementById('ticket-departure').textContent = state.departure.code;
+            document.getElementById('ticket-arrival').textContent = state.arrival.code;
+            document.getElementById('ticket-task').textContent = state.focusTask;
+            document.getElementById('ticket-seat').textContent = state.selectedSeat;
+            document.getElementById('ticket-duration').textContent = formatTime(state.focusDuration);
+
+            switchScreen('ticket');
+            
+            boardingPassContainer.classList.add('wobble-animation');
+            requestAnimationFrame(() => {
+                ticketTop.classList.add('tear-top-animation');
+                ticketBottom.classList.add('tear-bottom-animation');
+            });
+
+            setTimeout(() => {
+                switchScreen('inflight');
+                let mapInitAttempts = 0;
+                const pollForMapContainer = setInterval(() => {
+                    if (inflightMapEl && inflightMapEl.clientHeight > 0 && inflightMapEl.clientWidth > 0) {
+                        clearInterval(pollForMapContainer);
+                        initInflightMap();
+                        updateInflightUI();
+                        state.startTime = Date.now();
+                        state.timerInterval = setInterval(() => {
+                            const elapsedTime = Date.now() - state.startTime;
+                            const remainingTime = state.focusDuration - elapsedTime;
+                            if (remainingTime <= 0) {
+                                endFocusSession(true);
+                                return;
+                            }
+                            const progress = elapsedTime / state.focusDuration;
+                            updateInflightUI(remainingTime, progress);
+                        }, 100);
+                    } else if (++mapInitAttempts > 200) {
+                        clearInterval(pollForMapContainer);
+                        alert("Error loading the flight map. Please try again.");
+                    }
+                }, 10);
+            }, 2000);
+        }
+
+        function endFocusSession(completed = false) {
+            clearInterval(state.timerInterval);
+            state.timerInterval = null;
+
+            saveFlightToPassport(completed);
+
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                modalContent.style.animation = 'modal-bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+            });
+
+            if (completed) {
+                arrivalAirportText.textContent = `Arrived at ${state.arrival.name} (${state.arrival.code})`;
+                arrivalDurationText.textContent = `Total focus time: ${formatTime(state.focusDuration)}`;
+            } else {
+                arrivalAirportText.textContent = `Diverted before reaching ${state.arrival.name}`;
+                const focusedTime = Date.now() - state.startTime;
+                arrivalDurationText.textContent = `Total focus time: ${formatTime(focusedTime)}`;
+            }
+            arrivalTaskText.textContent = `"${state.focusTask}"`;
+        }
+        
+        function updateInflightUI(remainingTime = state.focusDuration, progress = 0) {
+            timeLeftEl.textContent = formatTime(remainingTime);
+            routeInfoEl.textContent = `${state.departure.code} → ${state.arrival.code}`;
+            const distanceTraveled = Math.round(state.flightDistance * progress);
+            distanceInfoEl.textContent = `${distanceTraveled} / ${Math.round(state.flightDistance)} km`;
+            
+            if (planeMarker && routeLine) {
+                const startPoint = L.latLng(state.departure.lat, state.departure.lng);
+                const endPoint = L.latLng(state.arrival.lat, state.arrival.lng);
+                const newLat = startPoint.lat + (endPoint.lat - startPoint.lat) * progress;
+                const newLng = startPoint.lng + (endPoint.lng - startPoint.lng) * progress;
+                planeMarker.setLatLng([newLat, newLng]);
+                const bearing = turf.bearing(turf.point([startPoint.lng, startPoint.lat]), turf.point([endPoint.lng, endPoint.lat]));
+                const planeIconDiv = document.getElementById('plane-icon-div');
+                if (planeIconDiv) planeIconDiv.style.transform = `rotate(${bearing}deg)`;
+            }
+        }
+        
+        function resetApp() {
+            clearInterval(state.timerInterval);
+            Object.assign(state, { 
+                departure: null, 
+                arrival: null, 
+                selectedSeat: null, 
+                focusTask: '', 
+                flightDistance: 0, 
+                focusDuration: 0, 
+                timerInterval: null, 
+                startTime: null 
+            });
+            
+            [ticketTop, ticketBottom, boardingPassContainer].forEach(el => el.className = el.className.replace(/(\s|^)\w+-animation\b/g, ''));
+            modalContent.style.animation = '';
+            modalContent.style.opacity = 0;
+            setTimeout(() => modal.classList.add('hidden'), 300);
+
+            planningInstructions.textContent = 'Select your departure airport from the map.';
+            flightInfoPlanning.textContent = '';
+            nextToSeatingBtn.disabled = true;
+            focusTaskInput.value = '';
+            seatInfo.textContent = '';
+            startFocusBtn.disabled = true;
+            
+            const selectedSeatEl = document.querySelector('#seat-map .bg-blue-500');
+            if (selectedSeatEl) {
+                selectedSeatEl.classList.remove('bg-blue-500', 'text-white');
+                selectedSeatEl.classList.add('bg-gray-500');
+            }
+            
+            switchScreen('planning');
+        }
+
+        function addEventListeners() {
+            nextToSeatingBtn.addEventListener('click', () => switchScreen('seating'));
+            startFocusBtn.addEventListener('click', startFocusSession);
+            endFlightBtn.addEventListener('click', () => endFocusSession(false));
+            planNewFlightBtn.addEventListener('click', resetApp);
+            focusTaskInput.addEventListener('input', updateStartButtonState);
+            viewPassportBtn.addEventListener('click', () => switchScreen('passport'));
+            backToPlanningBtn.addEventListener('click', () => switchScreen('planning'));
+        }
+
+        function loadScript(src, callback) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = callback;
+            document.head.appendChild(script);
+        }
+
+        loadScript('https://unpkg.com/@turf/turf@6/turf.min.js', () => {
+            init();
+        });
+    </script>
+</body>
+</html>
