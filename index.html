@@ -234,7 +234,7 @@
                     <button id="view-passport-btn" class="bg-purple-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-purple-700">
                         View Passport
                     </button>
-                    <button id="back-to-planning-btn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700">
+                    <button id="back-to-planning1-btn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700">
                         Delete
                     </button>
                 </div>
@@ -377,6 +377,7 @@
         
         const passportList = document.getElementById('passport-list');
         const backToPlanningBtn = document.getElementById('back-to-planning-btn');
+        const backToPlanningBtn1 = document.getElementById('back-to-planning1-btn');
 
         // --- State Management ---
         let state = {
@@ -1148,6 +1149,7 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
             focusTaskInput.addEventListener('input', updateStartButtonState);
             viewPassportBtn.addEventListener('click', () => switchScreen('passport'));
             backToPlanningBtn.addEventListener('click', () => switchScreen('planning'));
+            backToPlanningBtn1.addEventListener('click', () => switchScreen('planning'));
         }
 
         function loadScript(src, callback) {
@@ -1163,6 +1165,7 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
     </script>
 </body>
 </html>
+
 
 
 
