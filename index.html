@@ -490,7 +490,7 @@
                 state.arrival = null;
                 flightInfoPlanning.textContent = 'Please choose the airport from the map';
                 planningInstructions.textContent = 'Please choose the airport from the map';
-                planning.removeLayer(circle);
+                planningMap.removeLayer(circle);
             }
         }
         
@@ -1005,7 +1005,7 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
                 planningInstructions.textContent = `Departure: ${airport.code}. Now select an arrival airport.`;
                 flightInfoPlanning.textContent = `From: ${airport.name}`;
                 var circle=L.circle([state.departure.lat, state.departure.lng], {
-            radius: 100000, // Radius in meters
+            radius: 850000, // Radius in meters
             color: 'blue', // Circle border color
             fillColor: '#30f', // Fill color
             fillOpacity: 0.5 // Transparency of the fill
@@ -1172,6 +1172,7 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
     </script>
 </body>
 </html>
+
 
 
 
