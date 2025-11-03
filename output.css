@@ -1,7 +1,7 @@
 @layer theme, base, components, utilities;
 
 @layer theme {
-  @theme default {
+  :root {
     --font-sans:
       ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
       "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -473,7 +473,7 @@
   }
 
   /* Deprecated */
-  @theme default inline reference {
+  :root {
     --blur: 8px;
     --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
     --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
@@ -713,7 +713,6 @@
   embed,
   object {
     display: block; /* 1 */
-    vertical-align: middle; /* 2 */
   }
 
   /*
@@ -891,8 +890,3 @@
   }
 }
 
-@layer utilities {
-  @tailwind utilities;
-}
-
-@tailwind utilities;
