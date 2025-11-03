@@ -216,15 +216,6 @@
     </style>
     <meta name="google-site-verification" content="qcOFByDf3ybTrCSraFeUdqw3PcoSRuX6nw5DHvyu6fk" />
 </head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-RHDWX7DYLE"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-RHDWX7DYLE');
-</script>
 <body class="bg-gray-900 text-white antialiased flex items-center justify-center min-h-screen">
     <div id="app" class="w-full h-screen flex flex-col">
 
@@ -232,6 +223,16 @@
             <header class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-b border-gray-700">
                 <h1 class="text-2xl font-bold text-center">✈️ Flight Focus</h1>
                 <p id="planning-instructions" class="text-center text-gray-400 mt-1">Select your departure airport from the map.</p>
+                <div class="flex justify-center gap-2 mt-2 flex-wrap">
+                    <button id="region-all-btn" class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">All Regions</button>
+                    <button id="region-na-btn" class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">North America</button>
+                    <button id="region-sa-btn" class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">South America</button>
+                    <button id="region-eu-btn" class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">Europe</button>
+                    <button id="region-as-btn" class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">Asia</button>
+                    <button id="region-af-btn" class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">Africa</button>
+                    <button id="region-me-btn" class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">Middle East</button>
+                    <button id="region-oc-btn" class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">Oceania</button>
+                </div>
             </header>
             <div id="map-planning" class="flex-grow z-0"></div>
             <footer class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
@@ -249,6 +250,11 @@
                     <button class="bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-gray-700" onclick="window.location.href='https://workingstop.netlify.app/'">
                         Switch To-do
                     </button>
+                </div>
+                <div class="flex justify-center items-center gap-4 mt-2">
+                    <label for="time-slider" class="text-sm text-gray-400">Max Flight Time:</label>
+                    <input type="range" id="time-slider" min="1" max="12" value="5" step="0.5" class="w-32">
+                    <span id="time-display" class="text-sm text-gray-300">5.0 hours</span>
                 </div>
             </footer>
         </div>
@@ -325,9 +331,14 @@
             </div>
             <div id="map-inflight" class="flex-grow z-0"></div>
             <footer class="p-4 bg-gray-800/70 backdrop-blur-md z-10 border-t border-gray-700 text-center">
-                <button id="end-flight-btn" class="bg-red-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-red-700">
-                    Land Early
-                </button>
+                <div class="flex justify-center gap-4">
+                    <button id="window-view-btn" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-green-700">
+                        Window View
+                    </button>
+                    <button id="end-flight-btn" class="bg-red-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-red-700">
+                        Land Early
+                    </button>
+                </div>
             </footer>
         </div>
 
@@ -351,6 +362,19 @@
                 </button>
             </footer>
         </div>
+
+        <div id="window-screen" class="screen flex flex-col h-full bg-gray-900">
+            <div class="flex-grow flex items-center justify-center p-4">
+                <div class="w-full max-w-4xl aspect-video">
+                    <iframe width="100%" height="100%" src="https://www.youtube.com/embed/h3GxcOzRKOQ?si=pZ7dMdkw4OUyHCF-&controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                </div>
+            </div>
+            <footer class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
+                <button id="back-to-inflight-btn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700">
+                    Back to Flight
+                </button>
+            </footer>
+        </div>
     </div>
 
     <script>
@@ -360,7 +384,8 @@
             seating: document.getElementById('seating-screen'),
             inflight: document.getElementById('inflight-screen'),
             ticket: document.getElementById('ticket-animation-screen'),
-            passport: document.getElementById('passport-screen')
+            passport: document.getElementById('passport-screen'),
+            window: document.getElementById('window-screen')
         };
         const allScreens = document.querySelectorAll('.screen');
         
@@ -374,6 +399,14 @@
         const flightInfoPlanning = document.getElementById('flight-info-planning');
         const nextToSeatingBtn = document.getElementById('next-to-seating-btn');
         const viewPassportBtn = document.getElementById('view-passport-btn');
+        const regionAllBtn = document.getElementById('region-all-btn');
+        const regionNaBtn = document.getElementById('region-na-btn');
+        const regionSaBtn = document.getElementById('region-sa-btn');
+        const regionEuBtn = document.getElementById('region-eu-btn');
+        const regionAsBtn = document.getElementById('region-as-btn');
+        const regionAfBtn = document.getElementById('region-af-btn');
+        const regionMeBtn = document.getElementById('region-me-btn');
+        const regionOcBtn = document.getElementById('region-oc-btn');
         
         const seatMapContainer = document.getElementById('seat-map');
         const seatMapTitle = document.getElementById('seat-map-title');
@@ -390,6 +423,8 @@
         const passportList = document.getElementById('passport-list');
         const backToPlanningBtn = document.getElementById('back-to-planning-btn');
         const backToPlanningBtn1 = document.getElementById('back-to-planning1-btn');
+        const timeSlider = document.getElementById('time-slider');
+        const timeDisplay = document.getElementById('time-display');
 
         // --- State Management ---
         let state = {
@@ -404,7 +439,11 @@
             timerInterval: null,
             startTime: null,
             passport: [],
-            isLongHaul: false
+            isLongHaul: false,
+            currentRegion: 'all',
+            maxFlightTime: 5 * 60 * 60 * 1000, // 5 hours in milliseconds
+            circle: null,
+            circleControl: null
         };
         
         // --- Maps ---
@@ -502,7 +541,10 @@
                 state.arrival = null;
                 flightInfoPlanning.textContent = 'Please choose the airport from the map';
                 planningInstructions.textContent = 'Please choose the airport from the map';
-                planningMap.removeLayer(circle);
+                if (state.circle) {
+                    planningMap.removeLayer(state.circle);
+                    state.circle = null;
+                }
             }
         }
         
@@ -889,11 +931,23 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
                     const lat = parseFloat(values.pop());
                     const code = values.pop();
                     const name = values.join(',');
-                    return { name, code, lat, lng };
+                    const region = getRegion(lat, lng);
+                    return { name, code, lat, lng, region };
                 });
             } catch (error) {
                 console.error("Failed to parse airport data:", error);
                 planningInstructions.textContent = "Error: Could not load airport data.";
+            }
+
+            function getRegion(lat, lng) {
+                if (lat >= 15 && lat <= 83 && lng >= -168 && lng <= -52) return 'na'; // North America
+                if (lat >= -56 && lat <= 13 && lng >= -93 && lng <= -35) return 'sa'; // South America
+                if (lat >= 35 && lat <= 82 && lng >= -25 && lng <= 70) return 'eu'; // Europe
+                if (lat >= -10 && lat <= 81 && lng >= 25 && lng <= 180) return 'as'; // Asia
+                if (lat >= -35 && lat <= 37 && lng >= -18 && lng <= 52) return 'af'; // Africa
+                if (lat >= -50 && lat <= 0 && lng >= 110 && lng <= 180) return 'oc'; // Oceania
+                if (lat >= 12 && lat <= 42 && lng >= 25 && lng <= 65) return 'me'; // Middle East
+                return 'other'; // Default for any unmatched
             }
         }
 
@@ -923,6 +977,39 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
                 airportMarkers.push(marker);
             });
         }
+
+        function updateAirportMarkers() {
+            // Clear existing markers
+            airportMarkers.forEach(marker => planningMap.removeLayer(marker));
+            airportMarkers = [];
+
+            const filteredAirports = state.currentRegion === 'all' ? state.airports : state.airports.filter(airport => airport.region === state.currentRegion);
+
+            const airportIcon = L.divIcon({
+                html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="color: #3b82f6; width: 32px; height: 32px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));">
+                    <path fill-rule="evenodd" d="M12 2.25c-3.996 0-7.25 3.254-7.25 7.25 0 4.38 3.585 9.15 6.463 11.932a.75.75 0 001.074 0C15.665 18.65 19.25 13.88 19.25 9.5c0-3.996-3.254-7.25-7.25-7.25zM12 11a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" />
+                </svg>`,
+                className: '',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32]
+            });
+
+            filteredAirports.forEach(airport => {
+                const marker = L.marker([airport.lat, airport.lng], { icon: airportIcon })
+                    .addTo(planningMap)
+                    .bindPopup(`<b>${airport.name} (${airport.code})</b>`)
+                    .bindTooltip(airport.name, { direction: 'top', offset: L.point(0, -32) })
+                    .on('click', () => onAirportClick(airport));
+                airportMarkers.push(marker);
+            });
+
+            // Adjust map view based on region
+            if (filteredAirports.length > 0) {
+                const bounds = L.latLngBounds(filteredAirports.map(a => [a.lat, a.lng]));
+                planningMap.fitBounds(bounds, { padding: [20, 20] });
+            }
+        }
+
         
         function initInflightMap() {
             if (inflightMap) {
@@ -964,8 +1051,8 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
             const airplaneSvgUrl = isLongHaul ? b777SvgUrl : a320SvgUrl;
             const planeIconHtml = `
                 <div style="transform: rotate(0deg); width: 50px; height: 50px;" id="plane-icon-div">
-                    <img src="${airplaneSvgUrl}" style="transform: rotate(180deg);width: 50px; height: 50px; position: absolute; top: 17px;filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7));" />
-                    <span style="font-size: 10px; position: absolute; top: 0px; left: 50%; transform: translateX(-50%);transform: rotate(180deg); color: #ffffff; font-family: 'Roboto Mono', monospace;">
+                    <img src="${airplaneSvgUrl}" style="transform: rotate(180deg) scaleX(-1);width: 50px; height: 50px; position: absolute; top: 17px;filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7));" />
+                    <span style="font-size: 10px; position: absolute; top: 0px; left: 50%; transform: translateX(-50%) scaleX(-1);transform: rotate(180deg); color: #ffffff; font-family: 'Roboto Mono', monospace;">
                         ${isLongHaul ? 'B777' : 'A320'}
                     </span>
                 </div>`;
@@ -1016,19 +1103,28 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
                 state.departure = airport;
                 planningInstructions.textContent = `Departure: ${airport.code}. Now select an arrival airport.`;
                 flightInfoPlanning.textContent = `From: ${airport.name}`;
-                const circle = L.circle([state.departure.lat, state.departure.lng], { radius: 850000, // Radius in meters 
-                                                                                   color: 'blue', // Circle border color
-                                                                                   fillColor: '#30f', // Fill color
-                                                                                   fillOpacity: 0.1// Transparency of the fill
-                                                                                   }).addTo(planningMap);
+                // Create circle based on maxFlightTime
+                const radius = (state.maxFlightTime / 1000 / 60 / 60) * 850; // km/h * hours
+                state.circle = L.circle([state.departure.lat, state.departure.lng], {
+                    radius: radius * 1000, // Convert to meters
+                    color: 'blue',
+                    fillColor: '#30f',
+                    fillOpacity: 0.1
+                }).addTo(planningMap);
             } else if (!state.arrival && airport.code !== state.departure.code) {
-                state.arrival = airport;
-                planningInstructions.textContent = `Flight planned: ${state.departure.code} → ${state.arrival.code}. Ready to proceed.`;
-                state.flightDistance = calculateDistance(state.departure.lat, state.departure.lng, state.arrival.lat, state.arrival.lng);
-                state.focusDuration = calculateFlightTime(state.flightDistance);
-                state.isLongHaul = state.focusDuration > 18000000; // 5 hours in milliseconds
-                flightInfoPlanning.textContent = `Route: ${state.departure.code} to ${state.arrival.code} | Distance: ${Math.round(state.flightDistance)} km | Est. Focus Time: ${formatTime(state.focusDuration)} | Aircraft: ${state.isLongHaul ? 'B777' : 'A320'}`;
-                nextToSeatingBtn.disabled = false;
+                const distance = calculateDistance(state.departure.lat, state.departure.lng, airport.lat, airport.lng);
+                const flightTime = calculateFlightTime(distance);
+                if (flightTime <= state.maxFlightTime) {
+                    state.arrival = airport;
+                    planningInstructions.textContent = `Flight planned: ${state.departure.code} → ${state.arrival.code}. Ready to proceed.`;
+                    state.flightDistance = distance;
+                    state.focusDuration = flightTime;
+                    state.isLongHaul = state.focusDuration > 18000000; // 5 hours in milliseconds
+                    flightInfoPlanning.textContent = `Route: ${state.departure.code} to ${state.arrival.code} | Distance: ${Math.round(state.flightDistance)} km | Est. Focus Time: ${formatTime(state.focusDuration)} | Aircraft: ${state.isLongHaul ? 'B777' : 'A320'}`;
+                    nextToSeatingBtn.disabled = false;
+                } else {
+                    planningInstructions.textContent = `Arrival airport too far. Max flight time is ${state.maxFlightTime / 1000 / 60 / 60} hours.`;
+                }
             }
         }
 
@@ -1115,14 +1211,15 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
             if (planeMarker && routeLine) {
                 const startPoint = L.latLng(state.departure.lat, state.departure.lng);
                 const endPoint = L.latLng(state.arrival.lat, state.arrival.lng);
-                const newLat = startPoint.lat + (endPoint.lat - startPoint.lat) * progress;
-                const newLng = startPoint.lng + (endPoint.lng - startPoint.lng) * progress;
+                // Reverse flight direction: from arrival to departure (east to west)
+                const newLat = endPoint.lat - (endPoint.lat - startPoint.lat) * progress;
+                const newLng = endPoint.lng - (endPoint.lng - startPoint.lng) * progress;
                 planeMarker.setLatLng([newLat, newLng]);
-                const bearing = turf.bearing(turf.point([startPoint.lng, startPoint.lat]), turf.point([endPoint.lng, endPoint.lat]));
+                const bearing = turf.bearing(turf.point([endPoint.lng, endPoint.lat]), turf.point([startPoint.lng, startPoint.lat]));
                 const planeIconDiv = document.getElementById('plane-icon-div');
                 if (planeIconDiv) {
-                    // Adjust bearing by +90 degrees to account for SVG's default nose-right orientation
-                    planeIconDiv.style.transform = `rotate(${bearing + 90}deg)`;
+                    // Adjust bearing by +90 degrees to account for SVG's default nose-right orientation, and flip horizontally
+                    planeIconDiv.style.transform = `rotate(${bearing + 90}deg) scaleX(-1)`;
                 }
             }
         }
@@ -1168,6 +1265,32 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
             viewPassportBtn.addEventListener('click', () => switchScreen('passport'));
             backToPlanningBtn.addEventListener('click', () => switchScreen('planning'));
             backToPlanningBtn1.addEventListener('click', () => switchScreen('planning'));
+            regionAllBtn.addEventListener('click', () => filterByRegion('all'));
+            regionNaBtn.addEventListener('click', () => filterByRegion('na'));
+            regionSaBtn.addEventListener('click', () => filterByRegion('sa'));
+            regionEuBtn.addEventListener('click', () => filterByRegion('eu'));
+            regionAsBtn.addEventListener('click', () => filterByRegion('as'));
+            regionAfBtn.addEventListener('click', () => filterByRegion('af'));
+            regionMeBtn.addEventListener('click', () => filterByRegion('me'));
+            regionOcBtn.addEventListener('click', () => filterByRegion('oc'));
+            document.getElementById('window-view-btn').addEventListener('click', () => switchScreen('window'));
+            document.getElementById('back-to-inflight-btn').addEventListener('click', () => switchScreen('inflight'));
+            timeSlider.addEventListener('input', updateCircleRadius);
+        }
+
+        function filterByRegion(region) {
+            state.currentRegion = region;
+            updateAirportMarkers();
+        }
+
+        function updateCircleRadius() {
+            const hours = parseFloat(timeSlider.value);
+            state.maxFlightTime = hours * 60 * 60 * 1000; // Convert to milliseconds
+            timeDisplay.textContent = `${hours} hours`;
+            if (state.circle) {
+                const radius = hours * 850 * 1000; // km/h * hours * 1000 for meters
+                state.circle.setRadius(radius);
+            }
         }
 
         function loadScript(src, callback) {
@@ -1183,4 +1306,3 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
     </script>
 </body>
 </html>
-
