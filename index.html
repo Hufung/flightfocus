@@ -237,23 +237,23 @@
             <div id="map-planning" class="flex-grow z-0"></div>
             <footer class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
                 <div id="flight-info-planning" class="text-sm text-gray-300 mb-2 h-5"></div>
-                <div class="flex justify-center gap-4">
-                    <button id="next-to-seating-btn" disabled class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed">
+                <div class="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
+                    <button id="next-to-seating-btn" disabled class="bg-blue-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed w-full sm:w-auto">
                         Proceed to Gate
                     </button>
-                    <button id="view-passport-btn" class="bg-purple-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-purple-700">
+                    <button id="view-passport-btn" class="bg-purple-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-purple-700 w-full sm:w-auto">
                         View Passport
                     </button>
-                    <button id="back-to-planning1-btn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700">
+                    <button id="back-to-planning1-btn" class="bg-blue-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-blue-700 w-full sm:w-auto">
                         Delete
                     </button>
-                    <button class="bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-gray-700" onclick="window.location.href='https://workingstop.netlify.app/'">
+                    <button class="bg-gray-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-gray-700 w-full sm:w-auto" onclick="window.location.href='https://workingstop.netlify.app/'">
                         Switch To-do
                     </button>
                 </div>
-                <div class="flex justify-center items-center gap-4 mt-2">
-                    <label for="time-slider" class="text-sm text-gray-400">Max Flight Time:</label>
-                    <input type="range" id="time-slider" min="1" max="12" value="5" step="0.5" class="w-32">
+                <div class="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 mt-2">
+                    <label for="time-slider" class="text-sm text-gray-400 text-center sm:text-left">Max Flight Time:</label>
+                    <input type="range" id="time-slider" min="1" max="12" value="5" step="0.5" class="w-full sm:w-32">
                     <span id="time-display" class="text-sm text-gray-300">5.0 hours</span>
                 </div>
             </footer>
@@ -262,16 +262,16 @@
         <div id="seating-screen" class="screen flex flex-col h-full items-center justify-center p-4 bg-gray-800">
             <h2 class="text-3xl font-bold mb-2">Select Your Seat & Task</h2>
             <p class="text-gray-400 mb-6">Your seat represents your primary task for this focus session.</p>
-            <div class="w-full max-w-md bg-gray-900 p-4 rounded-xl shadow-lg border border-gray-700">
+            <div class="w-full max-w-md bg-gray-900 p-3 sm:p-4 rounded-xl shadow-lg border border-gray-700">
                 <div class="mb-4">
                     <label for="focus-task-input" class="block text-sm font-medium text-gray-300 mb-2">Focus Task:</label>
                     <input type="text" id="focus-task-input" placeholder="e.g., Finish Q3 report" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
-                <div id="seat-map-container" class="bg-gray-700 p-4 rounded-lg overflow-y-auto max-h-80">
+                <div id="seat-map-container" class="bg-gray-700 p-3 sm:p-4 rounded-lg overflow-y-auto max-h-60 sm:max-h-80">
                     <div id="seat-map-title" class="text-center text-xs text-gray-400 mb-2">A320 Cabin</div>
                     <div id="seat-map" class="grid gap-1 justify-items-center"></div>
                 </div>
-                <div id="seat-info" class="text-center mt-4 text-lg font-semibold h-6"></div>
+                <div id="seat-info" class="text-center mt-4 text-base sm:text-lg font-semibold h-6"></div>
             </div>
             <button id="start-focus-btn" disabled class="mt-6 bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed">
                 Take Off
@@ -279,35 +279,35 @@
         </div>
 
         <div id="ticket-animation-screen" class="screen flex flex-col h-full items-center justify-center p-4 bg-gray-900">
-            <div id="boarding-pass-container" class="boarding-pass-container w-full max-w-sm">
-                <div id="ticket-top" class="bg-white text-gray-800 p-4 rounded-t-2xl shadow-xl border-b-2 border-dashed border-gray-400" style="font-family: 'Roboto Mono', monospace;">
+            <div id="boarding-pass-container" class="boarding-pass-container w-full max-w-sm mx-auto">
+                <div id="ticket-top" class="bg-white text-gray-800 p-3 sm:p-4 rounded-t-2xl shadow-xl border-b-2 border-dashed border-gray-400" style="font-family: 'Roboto Mono', monospace;">
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-sm text-gray-500">Boarding Pass</span>
-                        <span class="text-lg font-bold text-blue-600">Flight Focus</span>
+                        <span class="text-base sm:text-lg font-bold text-blue-600">Flight Focus</span>
                     </div>
                     <div class="flex justify-between items-end">
                         <div>
                             <p class="text-xs text-gray-500">From</p>
-                            <p id="ticket-departure" class="text-4xl font-bold">---</p>
+                            <p id="ticket-departure" class="text-2xl sm:text-4xl font-bold">---</p>
                         </div>
-                        <span class="text-2xl text-gray-400">✈️</span>
+                        <span class="text-xl sm:text-2xl text-gray-400">✈️</span>
                         <div>
                             <p class="text-xs text-gray-500 text-right">To</p>
-                            <p id="ticket-arrival" class="text-4xl font-bold">---</p>
+                            <p id="ticket-arrival" class="text-2xl sm:text-4xl font-bold">---</p>
                         </div>
                     </div>
                 </div>
-                <div id="ticket-bottom" class="bg-white text-gray-800 p-4 rounded-b-2xl shadow-xl" style="font-family: 'Roboto Mono', monospace;">
+                <div id="ticket-bottom" class="bg-white text-gray-800 p-3 sm:p-4 rounded-b-2xl shadow-xl" style="font-family: 'Roboto Mono', monospace;">
                     <p class="text-xs text-gray-500">Focus Task</p>
-                    <p id="ticket-task" class="text-md font-bold truncate mb-3">Your Task Here</p>
+                    <p id="ticket-task" class="text-sm sm:text-md font-bold truncate mb-3">Your Task Here</p>
                     <div class="flex justify-between">
                         <div>
                             <p class="text-xs text-gray-500">Seat</p>
-                            <p id="ticket-seat" class="text-lg font-bold">--</p>
+                            <p id="ticket-seat" class="text-base sm:text-lg font-bold">--</p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Duration</p>
-                            <p id="ticket-duration" class="text-lg font-bold">--:--:--</p>
+                            <p id="ticket-duration" class="text-base sm:text-lg font-bold">--:--:--</p>
                         </div>
                     </div>
                 </div>
@@ -315,27 +315,27 @@
         </div>
 
         <div id="inflight-screen" class="screen flex flex-col h-full">
-            <div id="inflight-dashboard" class="p-4 bg-gray-800/70 backdrop-blur-md z-10 border-b border-gray-700 grid grid-cols-3 gap-4 items-center">
+            <div id="inflight-dashboard" class="p-2 sm:p-4 bg-gray-800/70 backdrop-blur-md z-10 border-b border-gray-700 grid grid-cols-3 gap-2 sm:gap-4 items-center">
                 <div class="text-left" style="opacity: 0;">
-                    <div class="text-sm text-gray-400">Time Remaining</div>
-                    <div id="time-left" class="text-2xl font-bold" style="animation: pulse 2.5s infinite ease-in-out;">--:--:--</div>
+                    <div class="text-xs sm:text-sm text-gray-400">Time Remaining</div>
+                    <div id="time-left" class="text-lg sm:text-2xl font-bold" style="animation: pulse 2.5s infinite ease-in-out;">--:--:--</div>
                 </div>
                 <div class="text-center" style="opacity: 0;">
-                    <div class="text-sm text-gray-400">Route</div>
-                    <div id="route-info" class="text-2xl font-bold">--- → ---</div>
+                    <div class="text-xs sm:text-sm text-gray-400">Route</div>
+                    <div id="route-info" class="text-lg sm:text-2xl font-bold">--- → ---</div>
                 </div>
                 <div class="text-right" style="opacity: 0;">
-                    <div class="text-sm text-gray-400">Distance</div>
-                    <div id="distance-info" class="text-2xl font-bold">0 / 0 km</div>
+                    <div class="text-xs sm:text-sm text-gray-400">Distance</div>
+                    <div id="distance-info" class="text-lg sm:text-2xl font-bold">0 / 0 km</div>
                 </div>
             </div>
             <div id="map-inflight" class="flex-grow z-0"></div>
-            <footer class="p-4 bg-gray-800/70 backdrop-blur-md z-10 border-t border-gray-700 text-center">
-                <div class="flex justify-center gap-4">
-                    <button id="window-view-btn" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-green-700">
+            <footer class="p-2 sm:p-4 bg-gray-800/70 backdrop-blur-md z-10 border-t border-gray-700 text-center">
+                <div class="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
+                    <button id="window-view-btn" class="bg-green-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-green-700 w-full sm:w-auto">
                         Window View
                     </button>
-                    <button id="end-flight-btn" class="bg-red-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-red-700">
+                    <button id="end-flight-btn" class="bg-red-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-red-700 w-full sm:w-auto">
                         Land Early
                     </button>
                 </div>
@@ -349,28 +349,28 @@
             </header>
             <div id="passport-entries" class="flex-grow p-6 overflow-y-auto">
                 <div class="passport-container max-w-4xl mx-auto">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold text-white" style="font-family: 'Roboto Mono', monospace;">Flight Focus Passport</h2>
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
+                        <h2 class="text-lg sm:text-xl font-bold text-white" style="font-family: 'Roboto Mono', monospace;">Flight Focus Passport</h2>
                         <div class="text-sm text-gray-300">Issue Date: 2025-09-13</div>
                     </div>
-                    <div id="passport-list" class="grid grid-cols-2 gap-4 passport-page"></div>
+                    <div id="passport-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4 passport-page"></div>
                 </div>
             </div>
-            <footer class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
-                <button id="back-to-planning-btn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700">
+            <footer class="p-2 sm:p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
+                <button id="back-to-planning-btn" class="bg-blue-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-blue-700 w-full sm:w-auto">
                     Back to Planning
                 </button>
             </footer>
         </div>
 
         <div id="window-screen" class="screen flex flex-col h-full bg-gray-900">
-            <div class="flex-grow flex items-center justify-center p-4">
+            <div class="flex-grow flex items-center justify-center p-2 sm:p-4">
                 <div class="w-full max-w-4xl aspect-video">
                     <iframe width="100%" height="100%" src="https://www.youtube.com/embed/h3GxcOzRKOQ?si=pZ7dMdkw4OUyHCF-&controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                 </div>
             </div>
-            <footer class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
-                <button id="back-to-inflight-btn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700">
+            <footer class="p-2 sm:p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
+                <button id="back-to-inflight-btn" class="bg-blue-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-blue-700 w-full sm:w-auto">
                     Back to Flight
                 </button>
             </footer>
