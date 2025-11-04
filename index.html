@@ -79,6 +79,36 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Website Blocker Overlay */
+        #website-blocker {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .blocker-content {
+            max-width: 500px;
+            background: #1f2937;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .blocker-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
         /* Basic styling for initial content */
         .bg-gray-900 { background-color: #111827; }
         .text-white { color: white; }
@@ -424,6 +454,24 @@
 </head>
 
 <body class="bg-gray-900 text-white antialiased flex items-center justify-center min-h-screen">
+    <!-- Website Blocker Overlay -->
+    <div id="website-blocker">
+        <div class="blocker-content">
+            <div class="blocker-icon">🚫</div>
+            <h2 class="text-2xl font-bold mb-4">Focus Session Active</h2>
+            <p class="text-gray-300 mb-4">You are currently in a focus session. Please complete your task before browsing other websites.</p>
+            <p class="text-gray-400 text-sm mb-6">Task: <span id="blocker-task">Your focus task</span></p>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <button id="continue-focus-btn" class="compact-button bg-green-600 text-white hover:bg-green-700">
+                    Continue Focusing
+                </button>
+                <button id="emergency-exit-btn" class="compact-button bg-red-600 text-white hover:bg-red-700">
+                    Emergency Exit
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading screen for better perceived performance -->
     <div id="loading-screen" class="screen is-active loading-screen">
         <div class="loader"></div>
@@ -610,8 +658,197 @@
 
     <!-- Defer non-critical JavaScript -->
     <script>
+        // Website Blocker functionality
+        let isFocusSessionActive = false;
+        let focusStartTime = null;
+        let focusEndTime = null;
+        let blockedUrls = [];
+        
+        // Common distracting websites to block
+        const defaultBlockedUrls = [
+            'facebook.com',
+            'twitter.com',
+            'instagram.com',
+            'youtube.com',
+            'netflix.com',
+            'reddit.com',
+            'tiktok.com',
+            'pinterest.com',
+            'linkedin.com',
+            'whatsapp.com',
+            'discord.com',
+            'twitch.tv',
+            'amazon.com',
+            'ebay.com',
+            'aliexpress.com',
+            'shopping.com',
+            'news.google.com',
+            'cnn.com',
+            'bbc.com',
+            'espn.com'
+        ];
+        
+        // Initialize blocked URLs from localStorage or use defaults
+        function initializeBlockedUrls() {
+            const savedUrls = localStorage.getItem('flightFocusBlockedUrls');
+            if (savedUrls) {
+                blockedUrls = JSON.parse(savedUrls);
+            } else {
+                blockedUrls = defaultBlockedUrls;
+                localStorage.setItem('flightFocusBlockedUrls', JSON.stringify(blockedUrls));
+            }
+        }
+        
+        // Check if a URL should be blocked
+        function shouldBlockUrl(url) {
+            if (!isFocusSessionActive) return false;
+            
+            try {
+                const urlObj = new URL(url);
+                const hostname = urlObj.hostname.toLowerCase();
+                
+                return blockedUrls.some(blockedUrl => 
+                    hostname.includes(blockedUrl.toLowerCase()) || 
+                    hostname.endsWith('.' + blockedUrl.toLowerCase())
+                );
+            } catch (e) {
+                return false;
+            }
+        }
+        
+        // Show website blocker
+        function showWebsiteBlocker(url) {
+            const blocker = document.getElementById('website-blocker');
+            const taskElement = document.getElementById('blocker-task');
+            
+            if (taskElement && state.focusTask) {
+                taskElement.textContent = state.focusTask;
+            }
+            
+            blocker.style.display = 'flex';
+            
+            // Log the blocked access attempt
+            console.log(`Blocked access to: ${url} during focus session`);
+        }
+        
+        // Hide website blocker
+        function hideWebsiteBlocker() {
+            const blocker = document.getElementById('website-blocker');
+            blocker.style.display = 'none';
+        }
+        
+        // Start focus protection
+        function startFocusProtection() {
+            isFocusSessionActive = true;
+            focusStartTime = Date.now();
+            focusEndTime = focusStartTime + state.focusDuration;
+            
+            // Add event listeners for navigation attempts
+            window.addEventListener('beforeunload', handleBeforeUnload);
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            
+            // Override window.open to block new windows/tabs
+            const originalWindowOpen = window.open;
+            window.open = function(...args) {
+                if (isFocusSessionActive && args[0] && shouldBlockUrl(args[0])) {
+                    showWebsiteBlocker(args[0]);
+                    return null;
+                }
+                return originalWindowOpen.apply(this, args);
+            };
+            
+            console.log('Focus protection activated');
+        }
+        
+        // Stop focus protection
+        function stopFocusProtection() {
+            isFocusSessionActive = false;
+            focusStartTime = null;
+            focusEndTime = null;
+            
+            // Remove event listeners
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            
+            // Restore original window.open
+            window.open = Window.prototype.open;
+            
+            hideWebsiteBlocker();
+            console.log('Focus protection deactivated');
+        }
+        
+        // Handle beforeunload event (user tries to close tab)
+        function handleBeforeUnload(e) {
+            if (isFocusSessionActive) {
+                e.preventDefault();
+                e.returnValue = 'You are in a focus session. Are you sure you want to leave?';
+                return e.returnValue;
+            }
+        }
+        
+        // Handle visibility change (user switches tabs)
+        function handleVisibilityChange() {
+            if (isFocusSessionActive && document.hidden) {
+                // User switched to another tab - show blocker when they return
+                document.addEventListener('visibilitychange', handleReturnFromOtherTab, { once: true });
+            }
+        }
+        
+        // Handle when user returns from another tab
+        function handleReturnFromOtherTab() {
+            if (isFocusSessionActive) {
+                showWebsiteBlocker('another tab');
+            }
+        }
+        
+        // Monitor for URL changes (for single page apps)
+        let currentUrl = window.location.href;
+        setInterval(() => {
+            if (window.location.href !== currentUrl && isFocusSessionActive) {
+                if (shouldBlockUrl(window.location.href)) {
+                    // Show blocker and prevent navigation
+                    showWebsiteBlocker(window.location.href);
+                    window.history.pushState(null, '', currentUrl);
+                } else {
+                    currentUrl = window.location.href;
+                }
+            }
+        }, 100);
+        
+        // Intercept clicks on links
+        document.addEventListener('click', (e) => {
+            if (!isFocusSessionActive) return;
+            
+            let target = e.target;
+            while (target && target.tagName !== 'A') {
+                target = target.parentElement;
+            }
+            
+            if (target && target.href && shouldBlockUrl(target.href)) {
+                e.preventDefault();
+                e.stopPropagation();
+                showWebsiteBlocker(target.href);
+                return false;
+            }
+        }, true);
+        
+        // Intercept form submissions
+        document.addEventListener('submit', (e) => {
+            if (!isFocusSessionActive) return;
+            
+            if (e.target.action && shouldBlockUrl(e.target.action)) {
+                e.preventDefault();
+                e.stopPropagation();
+                showWebsiteBlocker(e.target.action);
+                return false;
+            }
+        }, true);
+
         // Simple loading manager
         window.addEventListener('load', function() {
+            // Initialize blocked URLs
+            initializeBlockedUrls();
+            
             // Hide loading screen after a minimum display time
             setTimeout(function() {
                 const loadingScreen = document.getElementById('loading-screen');
@@ -693,6 +930,10 @@
             const backToPlanningBtn1 = document.getElementById('back-to-planning1-btn');
             const timeSlider = document.getElementById('time-slider');
             const timeDisplay = document.getElementById('time-display');
+
+            // Website blocker elements
+            const continueFocusBtn = document.getElementById('continue-focus-btn');
+            const emergencyExitBtn = document.getElementById('emergency-exit-btn');
 
             // --- State Management ---
             let state = {
@@ -1452,6 +1693,10 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
                             initInflightMap();
                             updateInflightUI();
                             state.startTime = Date.now();
+                            
+                            // Start website blocking
+                            startFocusProtection();
+                            
                             state.timerInterval = setInterval(() => {
                                 const elapsedTime = Date.now() - state.startTime;
                                 const remainingTime = state.focusDuration - elapsedTime;
@@ -1473,6 +1718,9 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
             function endFocusSession(completed = false) {
                 clearInterval(state.timerInterval);
                 state.timerInterval = null;
+
+                // Stop website blocking
+                stopFocusProtection();
 
                 const newFlightId = Date.now();
                 saveFlightToPassport(completed);
@@ -1507,6 +1755,11 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
 
             function resetApp() {
                 clearInterval(state.timerInterval);
+                // Stop website blocking if active
+                if (isFocusSessionActive) {
+                    stopFocusProtection();
+                }
+                
                 Object.assign(state, {
                     departure: null,
                     arrival: null,
@@ -1560,6 +1813,15 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
                 document.getElementById('window-view-btn').addEventListener('click', () => switchScreen('window'));
                 document.getElementById('back-to-inflight-btn').addEventListener('click', () => switchScreen('inflight'));
                 timeSlider.addEventListener('input', updateCircleRadius);
+                
+                // Website blocker event listeners
+                continueFocusBtn.addEventListener('click', hideWebsiteBlocker);
+                emergencyExitBtn.addEventListener('click', () => {
+                    if (confirm('Are you sure you want to exit the focus session early? This will be recorded as an incomplete flight.')) {
+                        endFocusSession(false);
+                        hideWebsiteBlocker();
+                    }
+                });
             }
 
             function filterByRegion(region) {
