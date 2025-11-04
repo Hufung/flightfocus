@@ -1,35 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="keywords" content="flight, focus, timeclock, B777,b777,A320,a320">
     <meta name="author" content="Hufung">
-    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    
+    <!-- Preload critical CSS -->
+    <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
 
     <title>Flight Focus</title>
     <meta name="description"
         content="This website help you focus. You just like having a flight. When you flight let focus on your task. Let travel around the world when you are focusing. You may have a flight with B777X or A320.">
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
-
+    <!-- Critical CSS - minimal styles for initial render -->
     <style>
+        /* Critical CSS for initial render */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
             overflow: hidden;
+            background-color: #111827;
+            color: white;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
         }
 
         #app {
             position: relative;
+            width: 100%;
+            height: 100vh;
         }
 
         .screen {
@@ -47,6 +55,58 @@
             z-index: 10;
         }
 
+        .loading-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #111827;
+            z-index: 100;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #374151;
+            border-bottom-color: #3b82f6;
+            border-radius: 50%;
+            animation: rotation 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Basic styling for initial content */
+        .bg-gray-900 { background-color: #111827; }
+        .text-white { color: white; }
+        .antialiased { -webkit-font-smoothing: antialiased; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .min-h-screen { min-height: 100vh; }
+        .w-full { width: 100%; }
+        .h-screen { height: 100vh; }
+        .flex-col { flex-direction: column; }
+        .hidden { display: none; }
+    </style>
+
+    <!-- Defer non-critical CSS -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Non-critical CSS loaded after initial render -->
+    <style>
+        /* Rest of your CSS styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
         button {
             transition: transform 0.1s ease-out, background-color 0.2s ease;
         }
@@ -60,7 +120,6 @@
                 opacity: 0;
                 transform: translateY(15px);
             }
-
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -68,49 +127,21 @@
         }
 
         @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.85;
-            }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
         }
 
         @keyframes ticket-wobble {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            25% {
-                transform: rotate(-1deg);
-            }
-
-            50% {
-                transform: rotate(1deg);
-            }
-
-            75% {
-                transform: rotate(-0.5deg);
-            }
-
-            100% {
-                transform: rotate(0deg);
-            }
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-1deg); }
+            50% { transform: rotate(1deg); }
+            75% { transform: rotate(-0.5deg); }
+            100% { transform: rotate(0deg); }
         }
 
         @keyframes page-flip {
-            0% {
-                transform: rotateY(-30deg);
-                opacity: 0.5;
-            }
-
-            100% {
-                transform: rotateY(0deg);
-                opacity: 1;
-            }
+            0% { transform: rotateY(-30deg); opacity: 0.5; }
+            100% { transform: rotateY(0deg); opacity: 1; }
         }
 
         @keyframes stamp {
@@ -119,19 +150,16 @@
                 opacity: 0;
                 box-shadow: none;
             }
-
             50% {
                 transform: scale(1.15) rotate(-5deg) translateY(-10px);
                 opacity: 0.9;
                 box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
             }
-
             70% {
                 transform: scale(0.95) rotate(3deg) translateY(5px);
                 opacity: 1;
                 box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             }
-
             100% {
                 transform: scale(1) rotate(0deg) translateY(0);
                 opacity: 1;
@@ -140,17 +168,9 @@
         }
 
         @keyframes glow {
-            0% {
-                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-            }
-
-            50% {
-                box-shadow: 0 0 15px 5px rgba(59, 130, 246, 0.5);
-            }
-
-            100% {
-                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-            }
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+            50% { box-shadow: 0 0 15px 5px rgba(59, 130, 246, 0.5); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
         }
 
         .leaflet-popup-content-wrapper {
@@ -222,7 +242,6 @@
                 transform: rotateZ(0) rotateX(0) translateY(0);
                 opacity: 1;
             }
-
             100% {
                 transform: rotateZ(-15deg) rotateX(20deg) translateY(-150%) translateX(-20%);
                 opacity: 0;
@@ -234,7 +253,6 @@
                 transform: rotateZ(0) rotateX(0) translateY(0);
                 opacity: 1;
             }
-
             100% {
                 transform: rotateZ(12deg) rotateX(-15deg) translateY(150%) translateX(20%);
                 opacity: 0;
@@ -319,7 +337,6 @@
         #seat-map {
             width: 100%;
             max-width: 400px;
-            /* Increased to accommodate B777 3-3-3 layout */
         }
 
         #seat-map button {
@@ -358,7 +375,6 @@
 
         .is-mobile button {
             min-height: 44px;
-            /* Minimum touch target size */
             min-width: 44px;
         }
 
@@ -385,357 +401,51 @@
         .is-mobile .boarding-pass-container {
             max-width: 100%;
         }
-    </style>
-    <style>
-        #app {
-            position: relative;
-        }
-
-        .screen {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
-            pointer-events: none;
-            z-index: 5;
-        }
-
-        .screen.is-active {
-            opacity: 1;
-            pointer-events: auto;
-            z-index: 10;
-        }
-
-        button {
-            transition: transform 0.1s ease-out, background-color 0.2s ease;
-        }
-
-        button:active:not(:disabled) {
-            transform: scale(0.97);
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(15px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.85;
-            }
-        }
-
-        @keyframes ticket-wobble {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            25% {
-                transform: rotate(-1deg);
-            }
-
-            50% {
-                transform: rotate(1deg);
-            }
-
-            75% {
-                transform: rotate(-0.5deg);
-            }
-
-            100% {
-                transform: rotate(0deg);
-            }
-        }
-
-        @keyframes page-flip {
-            0% {
-                transform: rotateY(-30deg);
-                opacity: 0.5;
-            }
-
-            100% {
-                transform: rotateY(0deg);
-                opacity: 1;
-            }
-        }
-
-        @keyframes stamp {
-            0% {
-                transform: scale(0.1) rotate(15deg) translateY(50px);
-                opacity: 0;
-                box-shadow: none;
-            }
-
-            50% {
-                transform: scale(1.15) rotate(-5deg) translateY(-10px);
-                opacity: 0.9;
-                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-            }
-
-            70% {
-                transform: scale(0.95) rotate(3deg) translateY(5px);
-                opacity: 1;
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            }
-
-            100% {
-                transform: scale(1) rotate(0deg) translateY(0);
-                opacity: 1;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            }
-        }
-
-        @keyframes glow {
-            0% {
-                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-            }
-
-            50% {
-                box-shadow: 0 0 15px 5px rgba(59, 130, 246, 0.5);
-            }
-
-            100% {
-                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-            }
-        }
-
-        .leaflet-popup-content-wrapper {
-            background-color: #1f2937;
-            color: #f3f4f6;
-            border-radius: 8px;
-        }
-
-        .leaflet-popup-content {
-            margin: 12px 18px;
-            font-size: 14px;
-        }
-
-        .leaflet-popup-tip {
-            background: #1f2937;
-        }
-
-        .leaflet-tooltip {
-            background-color: #1f2937;
-            color: #f3f4f6;
-            border: 1px solid #374151;
-            border-radius: 4px;
-            box-shadow: none;
-            padding: 6px 10px;
-            font-size: 12px;
-        }
-
-        .leaflet-tooltip-top:before {
-            border-top-color: #374151;
-        }
-
-        .inflight-tooltip {
-            background-color: #1f2937e0;
-            color: #f3f4f6;
-            border: none;
-            border-radius: 4px;
-            box-shadow: none;
-            padding: 4px 8px;
-            font-size: 12px;
+        
+        /* Compact button styles for main page */
+        .compact-button {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            border-radius: 0.5rem;
             font-weight: 500;
+            min-height: auto;
         }
-
-        .leaflet-tooltip-top.inflight-tooltip::before {
-            display: none;
+        
+        .compact-footer {
+            padding: 1rem;
         }
-
-        .leaflet-control-zoom-in,
-        .leaflet-control-zoom-out {
-            background-color: #374151 !important;
-            color: #f9fafb !important;
-            border-color: #4b5563 !important;
-        }
-
-        .leaflet-control-zoom-in:hover,
-        .leaflet-control-zoom-out:hover {
-            background-color: #4b5563 !important;
-        }
-
-        .boarding-pass-container {
-            perspective: 1200px;
-        }
-
-        .wobble-animation {
-            animation: ticket-wobble 0.5s ease-in-out;
-        }
-
-        @keyframes tear-top-realistic {
-            0% {
-                transform: rotateZ(0) rotateX(0) translateY(0);
-                opacity: 1;
-            }
-
-            100% {
-                transform: rotateZ(-15deg) rotateX(20deg) translateY(-150%) translateX(-20%);
-                opacity: 0;
-            }
-        }
-
-        @keyframes tear-bottom-realistic {
-            0% {
-                transform: rotateZ(0) rotateX(0) translateY(0);
-                opacity: 1;
-            }
-
-            100% {
-                transform: rotateZ(12deg) rotateX(-15deg) translateY(150%) translateX(20%);
-                opacity: 0;
-            }
-        }
-
-        .tear-top-animation {
-            transform-origin: top center;
-            animation: tear-top-realistic 1.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) 0.5s forwards;
-        }
-
-        .tear-bottom-animation {
-            transform-origin: bottom center;
-            animation: tear-bottom-realistic 1.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) 0.5s forwards;
-        }
-
-        /* Passport-specific styles */
-        .passport-container {
-            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .passport-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" opacity="0.1"%3E%3Cpath fill="none" stroke="%23ffffff" stroke-width="2" d="M50,20 a30,30 0 0,1 0,60 a30,30 0 0,1 0,-60 M50,30 a20,20 0 0,1 0,40 a20,20 0 0,1 0,-40 M30,50 h40" /%3E%3C/svg%3E');
-            opacity: 0.1;
-        }
-
-        .passport-page {
-            background: #f5f5f5;
-            border: 2px solid #d1d5db;
-            border-radius: 8px;
-            padding: 16px;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
-            transform-origin: left;
-            animation: page-flip 0.5s ease forwards;
-        }
-
-        .passport-entry {
-            border: 2px dashed #4b5563;
-            border-radius: 8px;
-            padding: 12px;
-            background: #e5e7eb;
-            font-family: 'Roboto Mono', monospace;
-            position: relative;
-            overflow: hidden;
-            transition: box-shadow 0.3s ease;
-        }
-
-        .passport-entry::before {
-            content: 'VISA';
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 12px;
-            color: #9ca3af;
-            transform: rotate(45deg);
-            opacity: 0.5;
-        }
-
-        .stamp-animation {
-            animation: stamp 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards, glow 1.5s ease-in-out 0.8s forwards;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Seat map specific styles */
-        #seat-map-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        #seat-map {
-            width: 100%;
-            max-width: 400px;
-            /* Increased to accommodate B777 3-3-3 layout */
-        }
-
-        #seat-map button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            line-height: 1;
-            padding: 2px;
-        }
-
-        #seat-map div {
-            font-size: 10px;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2px;
-        }
-
-        .aisle {
-            background-color: #4b5563;
-            width: 10px;
-            height: 10px;
-            margin: 0 auto;
+        
+        .compact-controls {
+            padding: 0.5rem;
         }
     </style>
+
     <meta name="google-site-verification" content="qcOFByDf3ybTrCSraFeUdqw3PcoSRuX6nw5DHvyu6fk" />
 </head>
 
 <body class="bg-gray-900 text-white antialiased flex items-center justify-center min-h-screen">
-    <div id="app" class="w-full h-screen flex flex-col">
+    <!-- Loading screen for better perceived performance -->
+    <div id="loading-screen" class="screen is-active loading-screen">
+        <div class="loader"></div>
+        <h2 class="text-xl font-bold">Flight Focus</h2>
+        <p class="text-gray-400 mt-2">Preparing for takeoff...</p>
+    </div>
 
+    <div id="app" class="w-full h-screen flex flex-col" style="display: none;">
+        <!-- Planning Screen -->
         <div id="planning-screen" class="screen flex flex-col h-full">
             <header class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-b border-gray-700">
                 <h1 class="text-2xl font-bold text-center">✈️ Flight Focus</h1>
-                <p id="planning-instructions" class="text-center text-gray-400 mt-1">Select your departure airport from
-                    the map.</p>
+                <p id="planning-instructions" class="text-center text-gray-400 mt-1">Select your departure airport from the map.</p>
                 <div class="flex justify-center gap-2 mt-2 flex-wrap region-buttons">
-                    <button id="region-all-btn"
-                        class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">All Regions</button>
-                    <button id="region-na-btn"
-                        class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">North
-                        America</button>
-                    <button id="region-sa-btn"
-                        class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">South
-                        America</button>
-                    <button id="region-eu-btn"
-                        class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">Europe</button>
-                    <button id="region-as-btn"
-                        class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">Asia</button>
-                    <button id="region-af-btn"
-                        class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">Africa</button>
-                    <button id="region-me-btn"
-                        class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">Middle East</button>
-                    <button id="region-oc-btn"
-                        class="bg-blue-600 text-white text-sm py-1 px-3 rounded hover:bg-blue-700">Oceania</button>
+                    <button id="region-all-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">All Regions</button>
+                    <button id="region-na-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">North America</button>
+                    <button id="region-sa-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">South America</button>
+                    <button id="region-eu-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">Europe</button>
+                    <button id="region-as-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">Asia</button>
+                    <button id="region-af-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">Africa</button>
+                    <button id="region-me-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">Middle East</button>
+                    <button id="region-oc-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">Oceania</button>
                 </div>
                 <div class="hidden region-select mt-2">
                     <select id="region-select-mobile" class="bg-gray-700 text-white rounded px-3 py-2 w-full max-w-xs">
@@ -751,65 +461,54 @@
                 </div>
             </header>
             <div id="map-planning" class="flex-grow z-0"></div>
-            <footer class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
+            <footer class="compact-footer bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
                 <div id="flight-info-planning" class="text-sm text-gray-300 mb-2 h-5"></div>
-                <div class="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
-                    <button id="next-to-seating-btn" disabled
-                        class="bg-blue-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed w-full sm:w-auto">
+                <div class="flex flex-row justify-center gap-2 flex-wrap">
+                    <button id="next-to-seating-btn" disabled class="compact-button bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed">
                         Proceed to Gate
                     </button>
-                    <button id="view-passport-btn"
-                        class="bg-purple-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-purple-700 w-full sm:w-auto">
+                    <button id="view-passport-btn" class="compact-button bg-purple-600 text-white hover:bg-purple-700">
                         View Passport
                     </button>
-                    <button id="back-to-planning1-btn"
-                        class="bg-blue-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-blue-700 w-full sm:w-auto">
+                    <button id="back-to-planning1-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">
                         Delete
                     </button>
-                    <button
-                        class="bg-gray-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-gray-700 w-full sm:w-auto"
-                        onclick="window.location.href='https://workingstop.netlify.app/'">
+                    <button class="compact-button bg-gray-600 text-white hover:bg-gray-700" onclick="window.location.href='https://workingstop.netlify.app/'">
                         Switch To-do
                     </button>
                 </div>
-                <div class="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 mt-2">
-                    <label for="time-slider" class="text-sm text-gray-400 text-center sm:text-left">Max Flight
-                        Time:</label>
-                    <input type="range" id="time-slider" min="1" max="12" value="5" step="0.5" class="w-full sm:w-32">
-                    <span id="time-display" class="text-sm text-gray-300">5.0 hours</span>
+                <div class="compact-controls flex flex-row justify-center items-center gap-2 mt-2">
+                    <label for="time-slider" class="text-xs text-gray-400">Max Flight Time:</label>
+                    <input type="range" id="time-slider" min="1" max="12" value="5" step="0.5" class="w-24">
+                    <span id="time-display" class="text-xs text-gray-300">5.0 hours</span>
                 </div>
             </footer>
         </div>
 
+        <!-- Seating Screen -->
         <div id="seating-screen" class="screen flex flex-col h-full items-center justify-center p-4 bg-gray-800">
             <h2 class="text-3xl font-bold mb-2">Select Your Seat & Task</h2>
             <p class="text-gray-400 mb-6">Your seat represents your primary task for this focus session.</p>
             <div class="w-full max-w-md bg-gray-900 p-3 sm:p-4 rounded-xl shadow-lg border border-gray-700">
                 <div class="mb-4">
-                    <label for="focus-task-input" class="block text-sm font-medium text-gray-300 mb-2">Focus
-                        Task:</label>
-                    <input type="text" id="focus-task-input" placeholder="e.g., Finish Q3 report"
-                        class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <label for="focus-task-input" class="block text-sm font-medium text-gray-300 mb-2">Focus Task:</label>
+                    <input type="text" id="focus-task-input" placeholder="e.g., Finish Q3 report" class="w-full bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
-                <div id="seat-map-container"
-                    class="bg-gray-700 p-3 sm:p-4 rounded-lg overflow-y-auto max-h-60 sm:max-h-80">
+                <div id="seat-map-container" class="bg-gray-700 p-3 sm:p-4 rounded-lg overflow-y-auto max-h-60 sm:max-h-80">
                     <div id="seat-map-title" class="text-center text-xs text-gray-400 mb-2">A320 Cabin</div>
                     <div id="seat-map" class="grid gap-1 justify-items-center"></div>
                 </div>
                 <div id="seat-info" class="text-center mt-4 text-base sm:text-lg font-semibold h-6"></div>
             </div>
-            <button id="start-focus-btn" disabled
-                class="mt-6 bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed">
+            <button id="start-focus-btn" disabled class="mt-6 bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed">
                 Take Off
             </button>
         </div>
 
-        <div id="ticket-animation-screen"
-            class="screen flex flex-col h-full items-center justify-center p-4 bg-gray-900">
+        <!-- Ticket Animation Screen -->
+        <div id="ticket-animation-screen" class="screen flex flex-col h-full items-center justify-center p-4 bg-gray-900">
             <div id="boarding-pass-container" class="boarding-pass-container w-full max-w-sm mx-auto">
-                <div id="ticket-top"
-                    class="bg-white text-gray-800 p-3 sm:p-4 rounded-t-2xl shadow-xl border-b-2 border-dashed border-gray-400"
-                    style="font-family: 'Roboto Mono', monospace;">
+                <div id="ticket-top" class="bg-white text-gray-800 p-3 sm:p-4 rounded-t-2xl shadow-xl border-b-2 border-dashed border-gray-400" style="font-family: 'Roboto Mono', monospace;">
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-sm text-gray-500">Boarding Pass</span>
                         <span class="text-base sm:text-lg font-bold text-blue-600">Flight Focus</span>
@@ -826,8 +525,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="ticket-bottom" class="bg-white text-gray-800 p-3 sm:p-4 rounded-b-2xl shadow-xl"
-                    style="font-family: 'Roboto Mono', monospace;">
+                <div id="ticket-bottom" class="bg-white text-gray-800 p-3 sm:p-4 rounded-b-2xl shadow-xl" style="font-family: 'Roboto Mono', monospace;">
                     <p class="text-xs text-gray-500">Focus Task</p>
                     <p id="ticket-task" class="text-sm sm:text-md font-bold truncate mb-3">Your Task Here</p>
                     <div class="flex justify-between">
@@ -844,13 +542,12 @@
             </div>
         </div>
 
+        <!-- Inflight Screen -->
         <div id="inflight-screen" class="screen flex flex-col h-full">
-            <div id="inflight-dashboard"
-                class="p-2 sm:p-4 bg-gray-800/70 backdrop-blur-md z-10 border-b border-gray-700 grid grid-cols-3 gap-2 sm:gap-4 items-center">
+            <div id="inflight-dashboard" class="p-2 sm:p-4 bg-gray-800/70 backdrop-blur-md z-10 border-b border-gray-700 grid grid-cols-3 gap-2 sm:gap-4 items-center">
                 <div class="text-left" style="opacity: 0;">
                     <div class="text-xs sm:text-sm text-gray-400">Time Remaining</div>
-                    <div id="time-left" class="text-lg sm:text-2xl font-bold"
-                        style="animation: pulse 2.5s infinite ease-in-out;">--:--:--</div>
+                    <div id="time-left" class="text-lg sm:text-2xl font-bold" style="animation: pulse 2.5s infinite ease-in-out;">--:--:--</div>
                 </div>
                 <div class="text-center" style="opacity: 0;">
                     <div class="text-xs sm:text-sm text-gray-400">Route</div>
@@ -862,20 +559,19 @@
                 </div>
             </div>
             <div id="map-inflight" class="flex-grow z-0"></div>
-            <footer class="p-2 sm:p-4 bg-gray-800/70 backdrop-blur-md z-10 border-t border-gray-700 text-center">
-                <div class="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
-                    <button id="window-view-btn"
-                        class="bg-green-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-green-700 w-full sm:w-auto">
+            <footer class="compact-footer bg-gray-800/70 backdrop-blur-md z-10 border-t border-gray-700 text-center">
+                <div class="flex flex-row justify-center gap-2 flex-wrap">
+                    <button id="window-view-btn" class="compact-button bg-green-600 text-white hover:bg-green-700">
                         Window View
                     </button>
-                    <button id="end-flight-btn"
-                        class="bg-red-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-red-700 w-full sm:w-auto">
+                    <button id="end-flight-btn" class="compact-button bg-red-600 text-white hover:bg-red-700">
                         Land Early
                     </button>
                 </div>
             </footer>
         </div>
 
+        <!-- Passport Screen -->
         <div id="passport-screen" class="screen flex flex-col h-full bg-gray-900">
             <header class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-b border-gray-700">
                 <h1 class="text-2xl font-bold text-center">🛂 Your Passport</h1>
@@ -884,263 +580,291 @@
             <div id="passport-entries" class="flex-grow p-6 overflow-y-auto">
                 <div class="passport-container max-w-4xl mx-auto">
                     <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
-                        <h2 class="text-lg sm:text-xl font-bold text-white"
-                            style="font-family: 'Roboto Mono', monospace;">Flight Focus Passport</h2>
+                        <h2 class="text-lg sm:text-xl font-bold text-white" style="font-family: 'Roboto Mono', monospace;">Flight Focus Passport</h2>
                         <div class="text-sm text-gray-300">Issue Date: 2025-09-13</div>
                     </div>
                     <div id="passport-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4 passport-page"></div>
                 </div>
             </div>
-            <footer class="p-2 sm:p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
-                <button id="back-to-planning-btn"
-                    class="bg-blue-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-blue-700 w-full sm:w-auto">
+            <footer class="compact-footer bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
+                <button id="back-to-planning-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">
                     Back to Planning
                 </button>
             </footer>
         </div>
 
+        <!-- Window Screen -->
         <div id="window-screen" class="screen flex flex-col h-full bg-gray-900">
             <div class="flex-grow flex items-center justify-center p-2 sm:p-4">
                 <div class="w-full max-w-4xl aspect-video">
-                    <iframe width="100%" height="100%"
-                        src="https://www.youtube.com/embed/h3GxcOzRKOQ?si=pZ7dMdkw4OUyHCF-&controls=0"
-                        title="YouTube video player" frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe> make it auto play
-                    when first load this
+                    <iframe width="100%" height="100%" src="https://www.youtube.com/embed/h3GxcOzRKOQ?si=pZ7dMdkw4OUyHCF-&controls=0&autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                 </div>
             </div>
-            <footer class="p-2 sm:p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
-                <button id="back-to-inflight-btn"
-                    class="bg-blue-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-lg shadow-md hover:bg-blue-700 w-full sm:w-auto">
+            <footer class="compact-footer bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
+                <button id="back-to-inflight-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">
                     Back to Flight
                 </button>
             </footer>
         </div>
     </div>
 
+    <!-- Defer non-critical JavaScript -->
     <script>
-        // --- DOM Elements ---
-        const screens = {
-            planning: document.getElementById('planning-screen'),
-            seating: document.getElementById('seating-screen'),
-            inflight: document.getElementById('inflight-screen'),
-            ticket: document.getElementById('ticket-animation-screen'),
-            passport: document.getElementById('passport-screen'),
-            window: document.getElementById('window-screen')
-        };
-        const allScreens = document.querySelectorAll('.screen');
+        // Simple loading manager
+        window.addEventListener('load', function() {
+            // Hide loading screen after a minimum display time
+            setTimeout(function() {
+                const loadingScreen = document.getElementById('loading-screen');
+                const app = document.getElementById('app');
+                
+                if (loadingScreen) loadingScreen.classList.remove('is-active');
+                if (app) app.style.display = 'flex';
+                
+                // Load Leaflet after initial render
+                const leafletScript = document.createElement('script');
+                leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                leafletScript.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+                leafletScript.crossOrigin = '';
+                leafletScript.onload = function() {
+                    // Now initialize the main application
+                    initApplication();
+                };
+                document.head.appendChild(leafletScript);
+            }, 800); // Minimum loading screen display time
+        });
 
-        const boardingPassContainer = document.getElementById('boarding-pass-container');
-        const ticketTop = document.getElementById('ticket-top');
-        const ticketBottom = document.getElementById('ticket-bottom');
+        // If page takes too long to load, show app anyway
+        setTimeout(function() {
+            const loadingScreen = document.getElementById('loading-screen');
+            const app = document.getElementById('app');
+            if (loadingScreen && loadingScreen.classList.contains('is-active')) {
+                loadingScreen.classList.remove('is-active');
+                if (app) app.style.display = 'flex';
+            }
+        }, 3000);
 
-        const planningMapEl = document.getElementById('map-planning');
-        const inflightMapEl = document.getElementById('map-inflight');
-        const planningInstructions = document.getElementById('planning-instructions');
-        const flightInfoPlanning = document.getElementById('flight-info-planning');
-        const nextToSeatingBtn = document.getElementById('next-to-seating-btn');
-        const viewPassportBtn = document.getElementById('view-passport-btn');
-        const regionAllBtn = document.getElementById('region-all-btn');
-        const regionNaBtn = document.getElementById('region-na-btn');
-        const regionSaBtn = document.getElementById('region-sa-btn');
-        const regionEuBtn = document.getElementById('region-eu-btn');
-        const regionAsBtn = document.getElementById('region-as-btn');
-        const regionAfBtn = document.getElementById('region-af-btn');
-        const regionMeBtn = document.getElementById('region-me-btn');
-        const regionOcBtn = document.getElementById('region-oc-btn');
-        const regionSelectMobile = document.getElementById('region-select-mobile');
-
-        const seatMapContainer = document.getElementById('seat-map');
-        const seatMapTitle = document.getElementById('seat-map-title');
-        const focusTaskInput = document.getElementById('focus-task-input');
-        const seatInfo = document.getElementById('seat-info');
-        const startFocusBtn = document.getElementById('start-focus-btn');
-
-        const inflightDashboardItems = document.querySelectorAll('#inflight-dashboard > div');
-        const timeLeftEl = document.getElementById('time-left');
-        const routeInfoEl = document.getElementById('route-info');
-        const distanceInfoEl = document.getElementById('distance-info');
-        const endFlightBtn = document.getElementById('end-flight-btn');
-
-        const passportList = document.getElementById('passport-list');
-        const backToPlanningBtn = document.getElementById('back-to-planning-btn');
-        const backToPlanningBtn1 = document.getElementById('back-to-planning1-btn');
-        const timeSlider = document.getElementById('time-slider');
-        const timeDisplay = document.getElementById('time-display');
-
-        // --- State Management ---
-        let state = {
-            airports: [],
-            currentScreen: 'planning',
-            departure: null,
-            arrival: null,
-            selectedSeat: null,
-            focusTask: '',
-            flightDistance: 0,
-            focusDuration: 0,
-            timerInterval: null,
-            startTime: null,
-            passport: [],
-            isLongHaul: false,
-            currentRegion: 'all',
-            maxFlightTime: 5 * 60 * 60 * 1000, // 5 hours in milliseconds
-            circle: null,
-            circleControl: null
-        };
-
-        // --- Maps ---
-        let planningMap, inflightMap;
-        let airportMarkers = [];
-        let routeLine, planeMarker;
-
-        // --- Passport Functions ---
-        function saveFlightToPassport(completed) {
-            const focusedTime = Date.now() - state.startTime;
-            const flightCode = `FC ${Math.floor(Math.random() * 900) + 100}`;
-            const flightRecord = {
-                id: Date.now(),
-                flightCode: flightCode,
-                departure: state.departure,
-                arrival: state.arrival,
-                task: state.focusTask,
-                seat: state.selectedSeat,
-                aircraft: state.isLongHaul ? 'B777' : 'A320',
-                duration: completed ? state.focusDuration : focusedTime,
-                distance: state.flightDistance,
-                completed: completed,
-                date: new Date().toISOString()
+        function initApplication() {
+            // Your existing JavaScript code
+            // --- DOM Elements ---
+            const screens = {
+                planning: document.getElementById('planning-screen'),
+                seating: document.getElementById('seating-screen'),
+                inflight: document.getElementById('inflight-screen'),
+                ticket: document.getElementById('ticket-animation-screen'),
+                passport: document.getElementById('passport-screen'),
+                window: document.getElementById('window-screen')
             };
-            state.passport.push(flightRecord);
-            localStorage.setItem('flightFocusPassport', JSON.stringify(state.passport));
-        }
-        function delpassport() {
-        }
-        function loadPassport() {
-            const savedPassport = localStorage.getItem('flightFocusPassport');
-            if (savedPassport) {
-                state.passport = JSON.parse(savedPassport);
-            }
-        }
+            const allScreens = document.querySelectorAll('.screen');
 
-        function displayPassport(highlightNew = false, newFlightId = null) {
-            passportList.innerHTML = '';
-            if (state.passport.length === 0) {
-                passportList.innerHTML = '<p class="text-gray-400 text-center col-span-2">No flights recorded yet.</p>';
-                return;
+            const boardingPassContainer = document.getElementById('boarding-pass-container');
+            const ticketTop = document.getElementById('ticket-top');
+            const ticketBottom = document.getElementById('ticket-bottom');
+
+            const planningMapEl = document.getElementById('map-planning');
+            const inflightMapEl = document.getElementById('map-inflight');
+            const planningInstructions = document.getElementById('planning-instructions');
+            const flightInfoPlanning = document.getElementById('flight-info-planning');
+            const nextToSeatingBtn = document.getElementById('next-to-seating-btn');
+            const viewPassportBtn = document.getElementById('view-passport-btn');
+            const regionAllBtn = document.getElementById('region-all-btn');
+            const regionNaBtn = document.getElementById('region-na-btn');
+            const regionSaBtn = document.getElementById('region-sa-btn');
+            const regionEuBtn = document.getElementById('region-eu-btn');
+            const regionAsBtn = document.getElementById('region-as-btn');
+            const regionAfBtn = document.getElementById('region-af-btn');
+            const regionMeBtn = document.getElementById('region-me-btn');
+            const regionOcBtn = document.getElementById('region-oc-btn');
+            const regionSelectMobile = document.getElementById('region-select-mobile');
+
+            const seatMapContainer = document.getElementById('seat-map');
+            const seatMapTitle = document.getElementById('seat-map-title');
+            const focusTaskInput = document.getElementById('focus-task-input');
+            const seatInfo = document.getElementById('seat-info');
+            const startFocusBtn = document.getElementById('start-focus-btn');
+
+            const inflightDashboardItems = document.querySelectorAll('#inflight-dashboard > div');
+            const timeLeftEl = document.getElementById('time-left');
+            const routeInfoEl = document.getElementById('route-info');
+            const distanceInfoEl = document.getElementById('distance-info');
+            const endFlightBtn = document.getElementById('end-flight-btn');
+
+            const passportList = document.getElementById('passport-list');
+            const backToPlanningBtn = document.getElementById('back-to-planning-btn');
+            const backToPlanningBtn1 = document.getElementById('back-to-planning1-btn');
+            const timeSlider = document.getElementById('time-slider');
+            const timeDisplay = document.getElementById('time-display');
+
+            // --- State Management ---
+            let state = {
+                airports: [],
+                currentScreen: 'planning',
+                departure: null,
+                arrival: null,
+                selectedSeat: null,
+                focusTask: '',
+                flightDistance: 0,
+                focusDuration: 0,
+                timerInterval: null,
+                startTime: null,
+                passport: [],
+                isLongHaul: false,
+                currentRegion: 'all',
+                maxFlightTime: 5 * 60 * 60 * 1000, // 5 hours in milliseconds
+                circle: null,
+                circleControl: null
+            };
+
+            // --- Maps ---
+            let planningMap, inflightMap;
+            let airportMarkers = [];
+            let routeLine, planeMarker;
+
+            // --- Passport Functions ---
+            function saveFlightToPassport(completed) {
+                const focusedTime = Date.now() - state.startTime;
+                const flightCode = `FC ${Math.floor(Math.random() * 900) + 100}`;
+                const flightRecord = {
+                    id: Date.now(),
+                    flightCode: flightCode,
+                    departure: state.departure,
+                    arrival: state.arrival,
+                    task: state.focusTask,
+                    seat: state.selectedSeat,
+                    aircraft: state.isLongHaul ? 'B777' : 'A320',
+                    duration: completed ? state.focusDuration : focusedTime,
+                    distance: state.flightDistance,
+                    completed: completed,
+                    date: new Date().toISOString()
+                };
+                state.passport.push(flightRecord);
+                localStorage.setItem('flightFocusPassport', JSON.stringify(state.passport));
             }
-            state.passport.forEach((flight, index) => {
-                const entry = document.createElement('div');
-                entry.classList.add('passport-entry', 'text-gray-800');
-                if (highlightNew && flight.id === newFlightId) {
-                    entry.classList.add('stamp-animation');
-                } else {
-                    entry.style.animation = `fadeInUp 0.5s ease forwards ${index * 0.1}s`;
+
+            function loadPassport() {
+                const savedPassport = localStorage.getItem('flightFocusPassport');
+                if (savedPassport) {
+                    state.passport = JSON.parse(savedPassport);
                 }
-                entry.innerHTML = `
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-bold">${new Date(flight.date).toLocaleDateString()}</span>
-                        <span class="text-xs font-semibold ${flight.completed ? 'text-green-600' : 'text-yellow-600'}">
-                            ${flight.completed ? 'COMPLETED' : 'DIVERTED'}
-                        </span>
-                    </div>
-                    <p class="text-sm font-bold">${flight.flightCode}</p>
-                    <p class="text-sm font-bold">${flight.departure.code} → ${flight.arrival.code}</p>
-                    <p class="text-xs">Task: ${flight.task}</p>
-                    <p class="text-xs">Seat: ${flight.seat}</p>
-                    <p class="text-xs">Aircraft: ${flight.aircraft}</p>
-                    <p class="text-xs">Duration: ${formatTime(flight.duration)}</p>
-                    <p class="text-xs">Distance: ${Math.round(flight.distance)} km</p>
-                `;
-                passportList.appendChild(entry);
-            });
-        }
+            }
 
-        // --- Utility Functions ---
-        function switchScreen(screenName) {
-            const newScreen = screens[screenName];
-            if (!newScreen) return;
-
-            allScreens.forEach(s => s.classList.remove('is-active'));
-            newScreen.classList.add('is-active');
-            state.currentScreen = screenName;
-
-            if (screenName === 'seating') {
-                generateSeatMap();
-                const seats = document.querySelectorAll('#seat-map > button');
-                seats.forEach((seat, index) => {
-                    seat.style.opacity = 0;
-                    seat.style.animation = `fadeInUp 0.5s ease forwards ${index * 0.005}s`;
+            function displayPassport(highlightNew = false, newFlightId = null) {
+                passportList.innerHTML = '';
+                if (state.passport.length === 0) {
+                    passportList.innerHTML = '<p class="text-gray-400 text-center col-span-2">No flights recorded yet.</p>';
+                    return;
+                }
+                state.passport.forEach((flight, index) => {
+                    const entry = document.createElement('div');
+                    entry.classList.add('passport-entry', 'text-gray-800');
+                    if (highlightNew && flight.id === newFlightId) {
+                        entry.classList.add('stamp-animation');
+                    } else {
+                        entry.style.animation = `fadeInUp 0.5s ease forwards ${index * 0.1}s`;
+                    }
+                    entry.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold">${new Date(flight.date).toLocaleDateString()}</span>
+                            <span class="text-xs font-semibold ${flight.completed ? 'text-green-600' : 'text-yellow-600'}">
+                                ${flight.completed ? 'COMPLETED' : 'DIVERTED'}
+                            </span>
+                        </div>
+                        <p class="text-sm font-bold">${flight.flightCode}</p>
+                        <p class="text-sm font-bold">${flight.departure.code} → ${flight.arrival.code}</p>
+                        <p class="text-xs">Task: ${flight.task}</p>
+                        <p class="text-xs">Seat: ${flight.seat}</p>
+                        <p class="text-xs">Aircraft: ${flight.aircraft}</p>
+                        <p class="text-xs">Duration: ${formatTime(flight.duration)}</p>
+                        <p class="text-xs">Distance: ${Math.round(flight.distance)} km</p>
+                    `;
+                    passportList.appendChild(entry);
                 });
-            } else if (screenName === 'inflight') {
-                inflightDashboardItems.forEach((item, index) => {
-                    item.style.opacity = 0;
-                    item.style.animation = `fadeInUp 0.6s ease forwards ${0.2 + index * 0.2}s`;
-                });
-            } else if (screenName === 'passport') {
-                displayPassport();
-            } else if (screenName === 'planning') {
-                state.departure = null;
-                state.arrival = null;
-                flightInfoPlanning.textContent = 'Please choose the airport from the map';
-                planningInstructions.textContent = 'Please choose the airport from the map';
-                if (state.circle) {
-                    planningMap.removeLayer(state.circle);
-                    state.circle = null;
+            }
+
+            // --- Utility Functions ---
+            function switchScreen(screenName) {
+                const newScreen = screens[screenName];
+                if (!newScreen) return;
+
+                allScreens.forEach(s => s.classList.remove('is-active'));
+                newScreen.classList.add('is-active');
+                state.currentScreen = screenName;
+
+                if (screenName === 'seating') {
+                    generateSeatMap();
+                    const seats = document.querySelectorAll('#seat-map > button');
+                    seats.forEach((seat, index) => {
+                        seat.style.opacity = 0;
+                        seat.style.animation = `fadeInUp 0.5s ease forwards ${index * 0.005}s`;
+                    });
+                } else if (screenName === 'inflight') {
+                    inflightDashboardItems.forEach((item, index) => {
+                        item.style.opacity = 0;
+                        item.style.animation = `fadeInUp 0.6s ease forwards ${0.2 + index * 0.2}s`;
+                    });
+                } else if (screenName === 'passport') {
+                    displayPassport();
+                } else if (screenName === 'planning') {
+                    state.departure = null;
+                    state.arrival = null;
+                    flightInfoPlanning.textContent = 'Please choose the airport from the map';
+                    planningInstructions.textContent = 'Please choose the airport from the map';
+                    if (state.circle) {
+                        planningMap.removeLayer(state.circle);
+                        state.circle = null;
+                    }
                 }
             }
-        }
 
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = deg2rad(lat2 - lat1);
-            const dLon = deg2rad(lon2 - lon1);
-            const a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-        }
-
-        function deg2rad(deg) {
-            return deg * (Math.PI / 180);
-        }
-
-        function calculateFlightTime(distance) {
-            const averageSpeedKmh = 850;
-            const hours = distance / averageSpeedKmh;
-            return hours * 60 * 60 * 1000;
-        }
-
-        function formatTime(ms) {
-            if (ms < 0) ms = 0;
-            const totalSeconds = Math.floor(ms / 1000);
-            const hours = Math.floor(totalSeconds / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const seconds = totalSeconds % 60;
-            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }
-
-        // --- Initialization ---
-        function init() {
-            loadPassport();
-            parseAirportData();
-            initPlanningMap();
-            addEventListeners();
-            detectMobile();
-            switchScreen('planning');
-        }
-
-        function detectMobile() {
-            const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            if (isMobile) {
-                document.body.classList.add('is-mobile');
+            function calculateDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371;
+                const dLat = deg2rad(lat2 - lat1);
+                const dLon = deg2rad(lon2 - lon1);
+                const a =
+                    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                return R * c;
             }
-        }
 
-        function parseAirportData() {
-            const csvText = `name,code,lat,lng
+            function deg2rad(deg) {
+                return deg * (Math.PI / 180);
+            }
+
+            function calculateFlightTime(distance) {
+                const averageSpeedKmh = 850;
+                const hours = distance / averageSpeedKmh;
+                return hours * 60 * 60 * 1000;
+            }
+
+            function formatTime(ms) {
+                if (ms < 0) ms = 0;
+                const totalSeconds = Math.floor(ms / 1000);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+
+            // --- Initialization ---
+            function init() {
+                loadPassport();
+                parseAirportData();
+                initPlanningMap();
+                addEventListeners();
+                detectMobile();
+                switchScreen('planning');
+            }
+
+            function detectMobile() {
+                const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (isMobile) {
+                    document.body.classList.add('is-mobile');
+                }
+            }
+
+            function parseAirportData() {
+                const csvText = `name,code,lat,lng
 Hartsfield-Jackson Atlanta Int'l,ATL,33.6407,-84.4277
 Beijing Capital Int'l,PEK,40.0801,116.5845
 Dubai Int'l,DXB,25.2532,55.3657
@@ -1473,398 +1197,397 @@ Mauritius Sir Seewoosagur Ramgoolam Int'l Airport,MRU,-20.4302,57.6836
 Saint-Denis Roland Garros Airport,RUN,-20.8873,55.5130
 Moroni Prince Said Ibrahim Int'l Airport,HAH,-11.5333,43.2719
 Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
-            try {
-                const lines = csvText.trim().split('\n');
-                lines.shift();
-                state.airports = lines.map(line => {
-                    const values = line.split(',');
-                    const lng = parseFloat(values.pop());
-                    const lat = parseFloat(values.pop());
-                    const code = values.pop();
-                    const name = values.join(',');
-                    const region = getRegion(lat, lng);
-                    return { name, code, lat, lng, region };
-                });
-            } catch (error) {
-                console.error("Failed to parse airport data:", error);
-                planningInstructions.textContent = "Error: Could not load airport data.";
+                try {
+                    const lines = csvText.trim().split('\n');
+                    lines.shift();
+                    state.airports = lines.map(line => {
+                        const values = line.split(',');
+                        const lng = parseFloat(values.pop());
+                        const lat = parseFloat(values.pop());
+                        const code = values.pop();
+                        const name = values.join(',');
+                        const region = getRegion(lat, lng);
+                        return { name, code, lat, lng, region };
+                    });
+                } catch (error) {
+                    console.error("Failed to parse airport data:", error);
+                    planningInstructions.textContent = "Error: Could not load airport data.";
+                }
+
+                function getRegion(lat, lng) {
+                    if (lat >= 15 && lat <= 83 && lng >= -168 && lng <= -52) return 'na'; // North America
+                    if (lat >= -56 && lat <= 13 && lng >= -93 && lng <= -35) return 'sa'; // South America
+                    if (lat >= 35 && lat <= 82 && lng >= -25 && lng <= 70) return 'eu'; // Europe
+                    if (lat >= -10 && lat <= 81 && lng >= 25 && lng <= 180) return 'as'; // Asia
+                    if (lat >= -35 && lat <= 37 && lng >= -18 && lng <= 52) return 'af'; // Africa
+                    if (lat >= -50 && lat <= 0 && lng >= 110 && lng <= 180) return 'oc'; // Oceania
+                    if (lat >= 12 && lat <= 42 && lng >= 25 && lng <= 65) return 'me'; // Middle East
+                    return 'other'; // Default for any unmatched
+                }
             }
 
-            function getRegion(lat, lng) {
-                if (lat >= 15 && lat <= 83 && lng >= -168 && lng <= -52) return 'na'; // North America
-                if (lat >= -56 && lat <= 13 && lng >= -93 && lng <= -35) return 'sa'; // South America
-                if (lat >= 35 && lat <= 82 && lng >= -25 && lng <= 70) return 'eu'; // Europe
-                if (lat >= -10 && lat <= 81 && lng >= 25 && lng <= 180) return 'as'; // Asia
-                if (lat >= -35 && lat <= 37 && lng >= -18 && lng <= 52) return 'af'; // Africa
-                if (lat >= -50 && lat <= 0 && lng >= 110 && lng <= 180) return 'oc'; // Oceania
-                if (lat >= 12 && lat <= 42 && lng >= 25 && lng <= 65) return 'me'; // Middle East
-                return 'other'; // Default for any unmatched
-            }
-        }
-
-        function initPlanningMap() {
-            planningMap = L.map('map-planning').setView([20, 0], 2);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-                subdomains: 'abcd',
-                maxZoom: 19
-            }).addTo(planningMap);
-
-            const airportIcon = L.divIcon({
-                html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="color: #3b82f6; width: 32px; height: 32px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));">
-                    <path fill-rule="evenodd" d="M12 2.25c-3.996 0-7.25 3.254-7.25 7.25 0 4.38 3.585 9.15 6.463 11.932a.75.75 0 001.074 0C15.665 18.65 19.25 13.88 19.25 9.5c0-3.996-3.254-7.25-7.25-7.25zM12 11a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" />
-                </svg>`,
-                className: '',
-                iconSize: [32, 32],
-                iconAnchor: [16, 32]
-            });
-
-            state.airports.forEach(airport => {
-                const marker = L.marker([airport.lat, airport.lng], { icon: airportIcon })
-                    .addTo(planningMap)
-                    .bindPopup(`<b>${airport.name} (${airport.code})</b>`)
-                    .bindTooltip(airport.name, { direction: 'top', offset: L.point(0, -32) })
-                    .on('click', () => onAirportClick(airport));
-                airportMarkers.push(marker);
-            });
-        }
-
-        function updateAirportMarkers() {
-            // Clear existing markers
-            airportMarkers.forEach(marker => planningMap.removeLayer(marker));
-            airportMarkers = [];
-
-            const filteredAirports = state.currentRegion === 'all' ? state.airports : state.airports.filter(airport => airport.region === state.currentRegion);
-
-            const airportIcon = L.divIcon({
-                html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="color: #3b82f6; width: 32px; height: 32px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));">
-                    <path fill-rule="evenodd" d="M12 2.25c-3.996 0-7.25 3.254-7.25 7.25 0 4.38 3.585 9.15 6.463 11.932a.75.75 0 001.074 0C15.665 18.65 19.25 13.88 19.25 9.5c0-3.996-3.254-7.25-7.25-7.25zM12 11a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" />
-                </svg>`,
-                className: '',
-                iconSize: [32, 32],
-                iconAnchor: [16, 32]
-            });
-
-            filteredAirports.forEach(airport => {
-                const marker = L.marker([airport.lat, airport.lng], { icon: airportIcon })
-                    .addTo(planningMap)
-                    .bindPopup(`<b>${airport.name} (${airport.code})</b>`)
-                    .bindTooltip(airport.name, { direction: 'top', offset: L.point(0, -32) })
-                    .on('click', () => onAirportClick(airport));
-                airportMarkers.push(marker);
-            });
-
-            // Adjust map view based on region
-            if (filteredAirports.length > 0) {
-                const bounds = L.latLngBounds(filteredAirports.map(a => [a.lat, a.lng]));
-                planningMap.fitBounds(bounds, { padding: [20, 20] });
-            }
-        }
-
-
-        function initInflightMap() {
-            if (inflightMap) {
-                inflightMap.remove();
-                inflightMap = null;
-            }
-            inflightMap = L.map('map-inflight');
-            inflightMap.invalidateSize();
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-                subdomains: 'abcd',
-                maxZoom: 19
-            }).addTo(inflightMap);
-
-            const bounds = L.latLngBounds([
-                [state.departure.lat, state.departure.lng],
-                [state.arrival.lat, state.arrival.lng]
-            ]);
-            inflightMap.fitBounds(bounds, { padding: [50, 50] });
-
-            const inflightAirportIcon = L.divIcon({
-                html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="color: #38bdf8; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7));">
-                    <path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.1.42-.25.692-.455.272-.204.58-.479.869-.819.289-.34.546-.72.758-1.139.213-.419.35-.882.414-1.393.065-.512.074-1.043.028-1.598a8.94 8.94 0 00-.424-2.22c-.228-.556-.52-1.07-.88-1.532-.36-.463-.785-.875-1.255-1.22a.75.75 0 00-.968-.065A8.94 8.94 0 005 8.5c0 .555.01.11.028.166.064.511.2.974.414 1.393.212.419.47.799.758 1.139.289-.34.597.615.869-.819.272.205.506.355.692.455a5.741 5.741 0 00.281.14l.018.008.006.003zM10 11.25a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" clip-rule="evenodd" />
-                </svg>`,
-                className: '', iconSize: [20, 20], iconAnchor: [10, 20]
-            });
-
-            [state.departure, state.arrival].forEach(airport => {
-                L.marker([airport.lat, airport.lng], { icon: inflightAirportIcon })
-                    .addTo(inflightMap)
-                    .bindTooltip(`${airport.code}`, { permanent: true, direction: 'top', offset: L.point(0, -20), className: 'inflight-tooltip' });
-            });
-
-            routeLine = L.polyline([[state.departure.lat, state.departure.lng], [state.arrival.lat, state.arrival.lng]], { color: '#3b82f6', weight: 3 }).addTo(inflightMap);
-
-            const a320SvgUrl = 'https://hufung.github.io/images/A320.svg'; // Placeholder for A320
-            const b777SvgUrl = 'https://hufung.github.io/images/B777.svg'; // Placeholder for B777
-            const isLongHaul = state.isLongHaul;
-            const airplaneSvgUrl = isLongHaul ? b777SvgUrl : a320SvgUrl;
-            const startPoint = L.latLng(state.departure.lat, state.departure.lng);
-            const endPoint = L.latLng(state.arrival.lat, state.arrival.lng);
-            const isWestbound = startPoint.lng > endPoint.lng;
-            const verticalFlip = isWestbound ? ' scaleX(-1)' : '';
-            const vertw = isWestbound ? ' ' : 'scaleY(-1)';
-            const planeIconHtml = `
-                <div style="transform: rotate(0deg); width: 50px; height: 50px;" id="plane-icon-div">
-                    <img src="${airplaneSvgUrl}" style="transform: rotate(180deg) ${verticalFlip};width: 50px; height: 50px; position: absolute; top: 17px;filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7));" />
-                    <span style="font-size: 10px; position: absolute; top: 0px; left: 50%; transform: translateX(-50%) rotate(180deg) ${vertw}; color: #ffffff; font-family: 'Roboto Mono', monospace;">
-                        ${isLongHaul ? 'B777' : 'A320'}
-                    </span>
-                </div>`;
-
-            const planeIcon = L.divIcon({
-                html: planeIconHtml,
-                className: '',
-                iconSize: [50, 50],
-                iconAnchor: [20, 20]
-            });
-            planeMarker = L.marker([state.departure.lat, state.departure.lng], { icon: planeIcon }).addTo(inflightMap);
-        }
-
-        function generateSeatMap() {
-            seatMapContainer.innerHTML = '';
-            const isLongHaul = state.isLongHaul;
-            const rows = isLongHaul ? 40 : 30; // B777: 40 rows, A320: 30 rows
-            const seatLetters = isLongHaul
-                ? ['A', 'B', 'C', '', 'D', 'E', 'F', '', 'G', 'H', 'J'] // B777: 3-3-3 with two aisles
-                : ['A', 'B', 'C', '', 'D', 'E', 'F']; // A320: 3-3 with one aisle
-            seatMapTitle.textContent = isLongHaul ? 'B777 Cabin' : 'A320 Cabin';
-            seatMapContainer.className = 'grid gap-1.5 justify-items-center ' + (isLongHaul ? 'grid-cols-11' : 'grid-cols-7');
-
-            for (let i = 1; i <= rows; i++) {
-                seatLetters.forEach(letter => {
-                    if (letter === '') {
-                        const aisle = document.createElement('div');
-                        aisle.textContent = i;
-                        aisle.classList.add('text-gray-500', 'text-xs', 'flex', 'items-center', 'justify-center', 'w-6', 'h-6');
-                        seatMapContainer.appendChild(aisle);
-                    } else {
-                        const seat = document.createElement('button');
-                        const seatId = `${i}${letter}`;
-                        seat.id = `seat-${seatId}`;
-                        seat.dataset.seatId = seatId;
-                        seat.textContent = seatId;
-                        seat.classList.add('w-6', 'h-6', 'bg-gray-500', 'rounded-md', 'text-xs', 'font-mono', 'hover:bg-blue-500', 'opacity-0', 'flex', 'items-center', 'justify-center');
-                        seat.addEventListener('click', () => onSeatSelect(seatId));
-                        seatMapContainer.appendChild(seat);
-                    }
-                });
-            }
-        }
-
-        // --- Event Handlers & Logic ---
-        function onAirportClick(airport) {
-            if (!state.departure) {
-                state.departure = airport;
-                planningInstructions.textContent = `Departure: ${airport.code}. Now select an arrival airport.`;
-                flightInfoPlanning.textContent = `From: ${airport.name}`;
-                // Create circle based on maxFlightTime
-                const radius = (state.maxFlightTime / 1000 / 60 / 60) * 850; // km/h * hours
-                state.circle = L.circle([state.departure.lat, state.departure.lng], {
-                    radius: radius * 1000, // Convert to meters
-                    color: 'blue',
-                    fillColor: '#30f',
-                    fillOpacity: 0.1
+            function initPlanningMap() {
+                planningMap = L.map('map-planning').setView([20, 0], 2);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                    subdomains: 'abcd',
+                    maxZoom: 19
                 }).addTo(planningMap);
-            } else if (!state.arrival && airport.code !== state.departure.code) {
-                const distance = calculateDistance(state.departure.lat, state.departure.lng, airport.lat, airport.lng);
-                const flightTime = calculateFlightTime(distance);
-                if (flightTime <= state.maxFlightTime) {
-                    state.arrival = airport;
-                    planningInstructions.textContent = `Flight planned: ${state.departure.code} → ${state.arrival.code}. Ready to proceed.`;
-                    state.flightDistance = distance;
-                    state.focusDuration = flightTime;
-                    state.isLongHaul = state.focusDuration > 18000000; // 5 hours in milliseconds
-                    flightInfoPlanning.textContent = `Route: ${state.departure.code} to ${state.arrival.code} | Distance: ${Math.round(state.flightDistance)} km | Est. Focus Time: ${formatTime(state.focusDuration)} | Aircraft: ${state.isLongHaul ? 'B777' : 'A320'}`;
-                    nextToSeatingBtn.disabled = false;
-                } else {
-                    planningInstructions.textContent = `Arrival airport too far. Max flight time is ${state.maxFlightTime / 1000 / 60 / 60} hours.`;
+
+                const airportIcon = L.divIcon({
+                    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="color: #3b82f6; width: 32px; height: 32px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));">
+                        <path fill-rule="evenodd" d="M12 2.25c-3.996 0-7.25 3.254-7.25 7.25 0 4.38 3.585 9.15 6.463 11.932a.75.75 0 001.074 0C15.665 18.65 19.25 13.88 19.25 9.5c0-3.996-3.254-7.25-7.25-7.25zM12 11a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" />
+                    </svg>`,
+                    className: '',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32]
+                });
+
+                state.airports.forEach(airport => {
+                    const marker = L.marker([airport.lat, airport.lng], { icon: airportIcon })
+                        .addTo(planningMap)
+                        .bindPopup(`<b>${airport.name} (${airport.code})</b>`)
+                        .bindTooltip(airport.name, { direction: 'top', offset: L.point(0, -32) })
+                        .on('click', () => onAirportClick(airport));
+                    airportMarkers.push(marker);
+                });
+            }
+
+            function updateAirportMarkers() {
+                // Clear existing markers
+                airportMarkers.forEach(marker => planningMap.removeLayer(marker));
+                airportMarkers = [];
+
+                const filteredAirports = state.currentRegion === 'all' ? state.airports : state.airports.filter(airport => airport.region === state.currentRegion);
+
+                const airportIcon = L.divIcon({
+                    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="color: #3b82f6; width: 32px; height: 32px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));">
+                        <path fill-rule="evenodd" d="M12 2.25c-3.996 0-7.25 3.254-7.25 7.25 0 4.38 3.585 9.15 6.463 11.932a.75.75 0 001.074 0C15.665 18.65 19.25 13.88 19.25 9.5c0-3.996-3.254-7.25-7.25-7.25zM12 11a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" />
+                    </svg>`,
+                    className: '',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32]
+                });
+
+                filteredAirports.forEach(airport => {
+                    const marker = L.marker([airport.lat, airport.lng], { icon: airportIcon })
+                        .addTo(planningMap)
+                        .bindPopup(`<b>${airport.name} (${airport.code})</b>`)
+                        .bindTooltip(airport.name, { direction: 'top', offset: L.point(0, -32) })
+                        .on('click', () => onAirportClick(airport));
+                    airportMarkers.push(marker);
+                });
+
+                // Adjust map view based on region
+                if (filteredAirports.length > 0) {
+                    const bounds = L.latLngBounds(filteredAirports.map(a => [a.lat, a.lng]));
+                    planningMap.fitBounds(bounds, { padding: [20, 20] });
                 }
             }
-        }
 
-        function onSeatSelect(seatId) {
-            if (state.selectedSeat) {
-                const prevSeat = document.getElementById(`seat-${state.selectedSeat}`);
-                if (prevSeat) {
-                    prevSeat.classList.remove('bg-blue-500', 'text-white');
-                    prevSeat.classList.add('bg-gray-500');
+            function initInflightMap() {
+                if (inflightMap) {
+                    inflightMap.remove();
+                    inflightMap = null;
                 }
-            }
-            state.selectedSeat = seatId;
-            const seatEl = document.getElementById(`seat-${seatId}`);
-            seatEl.classList.remove('bg-gray-500');
-            seatEl.classList.add('bg-blue-500', 'text-white');
-            seatInfo.textContent = `Seat ${seatId} selected.`;
-            updateStartButtonState();
-        }
+                inflightMap = L.map('map-inflight');
+                inflightMap.invalidateSize();
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                    subdomains: 'abcd',
+                    maxZoom: 19
+                }).addTo(inflightMap);
 
-        function updateStartButtonState() {
-            state.focusTask = focusTaskInput.value;
-            startFocusBtn.disabled = !(state.selectedSeat && state.focusTask.trim() !== '');
-        }
+                const bounds = L.latLngBounds([
+                    [state.departure.lat, state.departure.lng],
+                    [state.arrival.lat, state.arrival.lng]
+                ]);
+                inflightMap.fitBounds(bounds, { padding: [50, 50] });
 
-        function startFocusSession() {
-            document.getElementById('ticket-departure').textContent = state.departure.code;
-            document.getElementById('ticket-arrival').textContent = state.arrival.code;
-            document.getElementById('ticket-task').textContent = state.focusTask;
-            document.getElementById('ticket-seat').textContent = state.selectedSeat;
-            document.getElementById('ticket-duration').textContent = formatTime(state.focusDuration);
+                const inflightAirportIcon = L.divIcon({
+                    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="color: #38bdf8; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7));">
+                        <path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.1.42-.25.692-.455.272-.204.58-.479.869-.819.289-.34.546-.72.758-1.139.213-.419.35-.882.414-1.393.065-.512.074-1.043.028-1.598a8.94 8.94 0 00-.424-2.22c-.228-.556-.52-1.07-.88-1.532-.36-.463-.785-.875-1.255-1.22a.75.75 0 00-.968-.065A8.94 8.94 0 005 8.5c0 .555.01.11.028.166.064.511.2.974.414 1.393.212.419.47.799.758 1.139.289-.34.597.615.869-.819.272.205.506.355.692.455a5.741 5.741 0 00.281.14l.018.008.006.003zM10 11.25a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" clip-rule="evenodd" />
+                    </svg>`,
+                    className: '', iconSize: [20, 20], iconAnchor: [10, 20]
+                });
 
-            switchScreen('ticket');
+                [state.departure, state.arrival].forEach(airport => {
+                    L.marker([airport.lat, airport.lng], { icon: inflightAirportIcon })
+                        .addTo(inflightMap)
+                        .bindTooltip(`${airport.code}`, { permanent: true, direction: 'top', offset: L.point(0, -20), className: 'inflight-tooltip' });
+                });
 
-            boardingPassContainer.classList.add('wobble-animation');
-            requestAnimationFrame(() => {
-                ticketTop.classList.add('tear-top-animation');
-                ticketBottom.classList.add('tear-bottom-animation');
-            });
+                routeLine = L.polyline([[state.departure.lat, state.departure.lng], [state.arrival.lat, state.arrival.lng]], { color: '#3b82f6', weight: 3 }).addTo(inflightMap);
 
-            setTimeout(() => {
-                switchScreen('inflight');
-                let mapInitAttempts = 0;
-                const pollForMapContainer = setInterval(() => {
-                    if (inflightMapEl && inflightMapEl.clientHeight > 0 && inflightMapEl.clientWidth > 0) {
-                        clearInterval(pollForMapContainer);
-                        initInflightMap();
-                        updateInflightUI();
-                        state.startTime = Date.now();
-                        state.timerInterval = setInterval(() => {
-                            const elapsedTime = Date.now() - state.startTime;
-                            const remainingTime = state.focusDuration - elapsedTime;
-                            if (remainingTime <= 0) {
-                                endFocusSession(true);
-                                return;
-                            }
-                            const progress = elapsedTime / state.focusDuration;
-                            updateInflightUI(remainingTime, progress);
-                        }, 100);
-                    } else if (++mapInitAttempts > 200) {
-                        clearInterval(pollForMapContainer);
-                        alert("Error loading the flight map. Please try again.");
-                    }
-                }, 10);
-            }, 2000);
-        }
-
-        function endFocusSession(completed = false) {
-            clearInterval(state.timerInterval);
-            state.timerInterval = null;
-
-            const newFlightId = Date.now();
-            saveFlightToPassport(completed);
-
-            switchScreen('passport');
-            displayPassport(true, newFlightId);
-        }
-
-        function updateInflightUI(remainingTime = state.focusDuration, progress = 0) {
-            timeLeftEl.textContent = formatTime(remainingTime);
-            routeInfoEl.textContent = `${state.departure.code} → ${state.arrival.code}`;
-            const distanceTraveled = Math.round(state.flightDistance * progress);
-            distanceInfoEl.textContent = `${distanceTraveled} / ${Math.round(state.flightDistance)} km`;
-
-            if (planeMarker && routeLine) {
+                const a320SvgUrl = 'https://hufung.github.io/images/A320.svg'; // Placeholder for A320
+                const b777SvgUrl = 'https://hufung.github.io/images/B777.svg'; // Placeholder for B777
+                const isLongHaul = state.isLongHaul;
+                const airplaneSvgUrl = isLongHaul ? b777SvgUrl : a320SvgUrl;
                 const startPoint = L.latLng(state.departure.lat, state.departure.lng);
                 const endPoint = L.latLng(state.arrival.lat, state.arrival.lng);
-                // Flight direction: from departure to arrival
-                const newLat = startPoint.lat + (endPoint.lat - startPoint.lat) * progress;
-                const newLng = startPoint.lng + (endPoint.lng - startPoint.lng) * progress;
-                planeMarker.setLatLng([newLat, newLng]);
-                const bearing = turf.bearing(turf.point([startPoint.lng, startPoint.lat]), turf.point([endPoint.lng, endPoint.lat]));
                 const isWestbound = startPoint.lng > endPoint.lng;
-                const planeIconDiv = document.getElementById('plane-icon-div');
-                if (planeIconDiv) {
-                    // Adjust bearing by +90 degrees to account for SVG's default nose-right orientation, flip horizontally for direction, and flip vertically only for westbound flight
-                    const verticalFlip = isWestbound ? ' scaleY(-1)' : '';
-                    planeIconDiv.style.transform = `rotate(${bearing + 90}deg) scaleX(-1)${verticalFlip}`;
+                const verticalFlip = isWestbound ? ' scaleX(-1)' : '';
+                const vertw = isWestbound ? ' ' : 'scaleY(-1)';
+                const planeIconHtml = `
+                    <div style="transform: rotate(0deg); width: 50px; height: 50px;" id="plane-icon-div">
+                        <img src="${airplaneSvgUrl}" style="transform: rotate(180deg) ${verticalFlip};width: 50px; height: 50px; position: absolute; top: 17px;filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7));" />
+                        <span style="font-size: 10px; position: absolute; top: 0px; left: 50%; transform: translateX(-50%) rotate(180deg) ${vertw}; color: #ffffff; font-family: 'Roboto Mono', monospace;">
+                            ${isLongHaul ? 'B777' : 'A320'}
+                        </span>
+                    </div>`;
+
+                const planeIcon = L.divIcon({
+                    html: planeIconHtml,
+                    className: '',
+                    iconSize: [50, 50],
+                    iconAnchor: [20, 20]
+                });
+                planeMarker = L.marker([state.departure.lat, state.departure.lng], { icon: planeIcon }).addTo(inflightMap);
+            }
+
+            function generateSeatMap() {
+                seatMapContainer.innerHTML = '';
+                const isLongHaul = state.isLongHaul;
+                const rows = isLongHaul ? 40 : 30; // B777: 40 rows, A320: 30 rows
+                const seatLetters = isLongHaul
+                    ? ['A', 'B', 'C', '', 'D', 'E', 'F', '', 'G', 'H', 'J'] // B777: 3-3-3 with two aisles
+                    : ['A', 'B', 'C', '', 'D', 'E', 'F']; // A320: 3-3 with one aisle
+                seatMapTitle.textContent = isLongHaul ? 'B777 Cabin' : 'A320 Cabin';
+                seatMapContainer.className = 'grid gap-1.5 justify-items-center ' + (isLongHaul ? 'grid-cols-11' : 'grid-cols-7');
+
+                for (let i = 1; i <= rows; i++) {
+                    seatLetters.forEach(letter => {
+                        if (letter === '') {
+                            const aisle = document.createElement('div');
+                            aisle.textContent = i;
+                            aisle.classList.add('text-gray-500', 'text-xs', 'flex', 'items-center', 'justify-center', 'w-6', 'h-6');
+                            seatMapContainer.appendChild(aisle);
+                        } else {
+                            const seat = document.createElement('button');
+                            const seatId = `${i}${letter}`;
+                            seat.id = `seat-${seatId}`;
+                            seat.dataset.seatId = seatId;
+                            seat.textContent = seatId;
+                            seat.classList.add('w-6', 'h-6', 'bg-gray-500', 'rounded-md', 'text-xs', 'font-mono', 'hover:bg-blue-500', 'opacity-0', 'flex', 'items-center', 'justify-center');
+                            seat.addEventListener('click', () => onSeatSelect(seatId));
+                            seatMapContainer.appendChild(seat);
+                        }
+                    });
                 }
             }
-        }
 
-        function resetApp() {
-            clearInterval(state.timerInterval);
-            Object.assign(state, {
-                departure: null,
-                arrival: null,
-                selectedSeat: null,
-                focusTask: '',
-                flightDistance: 0,
-                focusDuration: 0,
-                timerInterval: null,
-                startTime: null,
-                isLongHaul: false
+            // --- Event Handlers & Logic ---
+            function onAirportClick(airport) {
+                if (!state.departure) {
+                    state.departure = airport;
+                    planningInstructions.textContent = `Departure: ${airport.code}. Now select an arrival airport.`;
+                    flightInfoPlanning.textContent = `From: ${airport.name}`;
+                    // Create circle based on maxFlightTime
+                    const radius = (state.maxFlightTime / 1000 / 60 / 60) * 850; // km/h * hours
+                    state.circle = L.circle([state.departure.lat, state.departure.lng], {
+                        radius: radius * 1000, // Convert to meters
+                        color: 'blue',
+                        fillColor: '#30f',
+                        fillOpacity: 0.1
+                    }).addTo(planningMap);
+                } else if (!state.arrival && airport.code !== state.departure.code) {
+                    const distance = calculateDistance(state.departure.lat, state.departure.lng, airport.lat, airport.lng);
+                    const flightTime = calculateFlightTime(distance);
+                    if (flightTime <= state.maxFlightTime) {
+                        state.arrival = airport;
+                        planningInstructions.textContent = `Flight planned: ${state.departure.code} → ${state.arrival.code}. Ready to proceed.`;
+                        state.flightDistance = distance;
+                        state.focusDuration = flightTime;
+                        state.isLongHaul = state.focusDuration > 18000000; // 5 hours in milliseconds
+                        flightInfoPlanning.textContent = `Route: ${state.departure.code} to ${state.arrival.code} | Distance: ${Math.round(state.flightDistance)} km | Est. Focus Time: ${formatTime(state.focusDuration)} | Aircraft: ${state.isLongHaul ? 'B777' : 'A320'}`;
+                        nextToSeatingBtn.disabled = false;
+                    } else {
+                        planningInstructions.textContent = `Arrival airport too far. Max flight time is ${state.maxFlightTime / 1000 / 60 / 60} hours.`;
+                    }
+                }
+            }
+
+            function onSeatSelect(seatId) {
+                if (state.selectedSeat) {
+                    const prevSeat = document.getElementById(`seat-${state.selectedSeat}`);
+                    if (prevSeat) {
+                        prevSeat.classList.remove('bg-blue-500', 'text-white');
+                        prevSeat.classList.add('bg-gray-500');
+                    }
+                }
+                state.selectedSeat = seatId;
+                const seatEl = document.getElementById(`seat-${seatId}`);
+                seatEl.classList.remove('bg-gray-500');
+                seatEl.classList.add('bg-blue-500', 'text-white');
+                seatInfo.textContent = `Seat ${seatId} selected.`;
+                updateStartButtonState();
+            }
+
+            function updateStartButtonState() {
+                state.focusTask = focusTaskInput.value;
+                startFocusBtn.disabled = !(state.selectedSeat && state.focusTask.trim() !== '');
+            }
+
+            function startFocusSession() {
+                document.getElementById('ticket-departure').textContent = state.departure.code;
+                document.getElementById('ticket-arrival').textContent = state.arrival.code;
+                document.getElementById('ticket-task').textContent = state.focusTask;
+                document.getElementById('ticket-seat').textContent = state.selectedSeat;
+                document.getElementById('ticket-duration').textContent = formatTime(state.focusDuration);
+
+                switchScreen('ticket');
+
+                boardingPassContainer.classList.add('wobble-animation');
+                requestAnimationFrame(() => {
+                    ticketTop.classList.add('tear-top-animation');
+                    ticketBottom.classList.add('tear-bottom-animation');
+                });
+
+                setTimeout(() => {
+                    switchScreen('inflight');
+                    let mapInitAttempts = 0;
+                    const pollForMapContainer = setInterval(() => {
+                        if (inflightMapEl && inflightMapEl.clientHeight > 0 && inflightMapEl.clientWidth > 0) {
+                            clearInterval(pollForMapContainer);
+                            initInflightMap();
+                            updateInflightUI();
+                            state.startTime = Date.now();
+                            state.timerInterval = setInterval(() => {
+                                const elapsedTime = Date.now() - state.startTime;
+                                const remainingTime = state.focusDuration - elapsedTime;
+                                if (remainingTime <= 0) {
+                                    endFocusSession(true);
+                                    return;
+                                }
+                                const progress = elapsedTime / state.focusDuration;
+                                updateInflightUI(remainingTime, progress);
+                            }, 100);
+                        } else if (++mapInitAttempts > 200) {
+                            clearInterval(pollForMapContainer);
+                            alert("Error loading the flight map. Please try again.");
+                        }
+                    }, 10);
+                }, 2000);
+            }
+
+            function endFocusSession(completed = false) {
+                clearInterval(state.timerInterval);
+                state.timerInterval = null;
+
+                const newFlightId = Date.now();
+                saveFlightToPassport(completed);
+
+                switchScreen('passport');
+                displayPassport(true, newFlightId);
+            }
+
+            function updateInflightUI(remainingTime = state.focusDuration, progress = 0) {
+                timeLeftEl.textContent = formatTime(remainingTime);
+                routeInfoEl.textContent = `${state.departure.code} → ${state.arrival.code}`;
+                const distanceTraveled = Math.round(state.flightDistance * progress);
+                distanceInfoEl.textContent = `${distanceTraveled} / ${Math.round(state.flightDistance)} km`;
+
+                if (planeMarker && routeLine) {
+                    const startPoint = L.latLng(state.departure.lat, state.departure.lng);
+                    const endPoint = L.latLng(state.arrival.lat, state.arrival.lng);
+                    // Flight direction: from departure to arrival
+                    const newLat = startPoint.lat + (endPoint.lat - startPoint.lat) * progress;
+                    const newLng = startPoint.lng + (endPoint.lng - startPoint.lng) * progress;
+                    planeMarker.setLatLng([newLat, newLng]);
+                    const bearing = turf.bearing(turf.point([startPoint.lng, startPoint.lat]), turf.point([endPoint.lng, endPoint.lat]));
+                    const isWestbound = startPoint.lng > endPoint.lng;
+                    const planeIconDiv = document.getElementById('plane-icon-div');
+                    if (planeIconDiv) {
+                        // Adjust bearing by +90 degrees to account for SVG's default nose-right orientation, flip horizontally for direction, and flip vertically only for westbound flight
+                        const verticalFlip = isWestbound ? ' scaleY(-1)' : '';
+                        planeIconDiv.style.transform = `rotate(${bearing + 90}deg) scaleX(-1)${verticalFlip}`;
+                    }
+                }
+            }
+
+            function resetApp() {
+                clearInterval(state.timerInterval);
+                Object.assign(state, {
+                    departure: null,
+                    arrival: null,
+                    selectedSeat: null,
+                    focusTask: '',
+                    flightDistance: 0,
+                    focusDuration: 0,
+                    timerInterval: null,
+                    startTime: null,
+                    isLongHaul: false
+                });
+
+                [ticketTop, ticketBottom, boardingPassContainer].forEach(el => el.className = el.className.replace(/(\s|^)\w+-animation\b/g, ''));
+
+                planningInstructions.textContent = 'Select your departure airport from the map.';
+                flightInfoPlanning.textContent = '';
+                nextToSeatingBtn.disabled = true;
+                seatMapTitle.textContent = 'A320 Cabin';
+                focusTaskInput.value = '';
+                seatInfo.textContent = '';
+                startFocusBtn.disabled = true;
+
+                const selectedSeatEl = document.querySelector('#seat-map .bg-blue-500');
+                if (selectedSeatEl) {
+                    selectedSeatEl.classList.remove('bg-blue-500', 'text-white');
+                    selectedSeatEl.classList.add('bg-gray-500');
+                }
+
+                switchScreen('planning');
+            }
+
+            function addEventListeners() {
+                nextToSeatingBtn.addEventListener('click', () => switchScreen('seating'));
+                startFocusBtn.addEventListener('click', startFocusSession);
+                endFlightBtn.addEventListener('click', () => endFocusSession(false));
+                focusTaskInput.addEventListener('input', updateStartButtonState);
+                viewPassportBtn.addEventListener('click', () => switchScreen('passport'));
+                backToPlanningBtn.addEventListener('click', () => switchScreen('planning'));
+                backToPlanningBtn1.addEventListener('click', () => switchScreen('planning'));
+                regionAllBtn.addEventListener('click', () => filterByRegion('all'));
+                regionNaBtn.addEventListener('click', () => filterByRegion('na'));
+                regionSaBtn.addEventListener('click', () => filterByRegion('sa'));
+                regionEuBtn.addEventListener('click', () => filterByRegion('eu'));
+                regionAsBtn.addEventListener('click', () => filterByRegion('as'));
+                regionAfBtn.addEventListener('click', () => filterByRegion('af'));
+                regionMeBtn.addEventListener('click', () => filterByRegion('me'));
+                regionOcBtn.addEventListener('click', () => filterByRegion('oc'));
+                if (regionSelectMobile) {
+                    regionSelectMobile.addEventListener('change', (e) => filterByRegion(e.target.value));
+                }
+                document.getElementById('window-view-btn').addEventListener('click', () => switchScreen('window'));
+                document.getElementById('back-to-inflight-btn').addEventListener('click', () => switchScreen('inflight'));
+                timeSlider.addEventListener('input', updateCircleRadius);
+            }
+
+            function filterByRegion(region) {
+                state.currentRegion = region;
+                updateAirportMarkers();
+            }
+
+            function updateCircleRadius() {
+                const hours = parseFloat(timeSlider.value);
+                state.maxFlightTime = hours * 60 * 60 * 1000; // Convert to milliseconds
+                timeDisplay.textContent = `${hours} hours`;
+                if (state.circle) {
+                    const radius = hours * 850 * 1000; // km/h * hours * 1000 for meters
+                    state.circle.setRadius(radius);
+                }
+            }
+
+            function loadScript(src, callback) {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = callback;
+                document.head.appendChild(script);
+            }
+
+            loadScript('https://unpkg.com/@turf/turf@6/turf.min.js', () => {
+                init();
             });
-
-            [ticketTop, ticketBottom, boardingPassContainer].forEach(el => el.className = el.className.replace(/(\s|^)\w+-animation\b/g, ''));
-
-            planningInstructions.textContent = 'Select your departure airport from the map.';
-            flightInfoPlanning.textContent = '';
-            nextToSeatingBtn.disabled = true;
-            seatMapTitle.textContent = 'A320 Cabin';
-            focusTaskInput.value = '';
-            seatInfo.textContent = '';
-            startFocusBtn.disabled = true;
-
-            const selectedSeatEl = document.querySelector('#seat-map .bg-blue-500');
-            if (selectedSeatEl) {
-                selectedSeatEl.classList.remove('bg-blue-500', 'text-white');
-                selectedSeatEl.classList.add('bg-gray-500');
-            }
-
-            switchScreen('planning');
         }
-
-        function addEventListeners() {
-            nextToSeatingBtn.addEventListener('click', () => switchScreen('seating'));
-            startFocusBtn.addEventListener('click', startFocusSession);
-            endFlightBtn.addEventListener('click', () => endFocusSession(false));
-            focusTaskInput.addEventListener('input', updateStartButtonState);
-            viewPassportBtn.addEventListener('click', () => switchScreen('passport'));
-            backToPlanningBtn.addEventListener('click', () => switchScreen('planning'));
-            backToPlanningBtn1.addEventListener('click', () => switchScreen('planning'));
-            regionAllBtn.addEventListener('click', () => filterByRegion('all'));
-            regionNaBtn.addEventListener('click', () => filterByRegion('na'));
-            regionSaBtn.addEventListener('click', () => filterByRegion('sa'));
-            regionEuBtn.addEventListener('click', () => filterByRegion('eu'));
-            regionAsBtn.addEventListener('click', () => filterByRegion('as'));
-            regionAfBtn.addEventListener('click', () => filterByRegion('af'));
-            regionMeBtn.addEventListener('click', () => filterByRegion('me'));
-            regionOcBtn.addEventListener('click', () => filterByRegion('oc'));
-            if (regionSelectMobile) {
-                regionSelectMobile.addEventListener('change', (e) => filterByRegion(e.target.value));
-            }
-            document.getElementById('window-view-btn').addEventListener('click', () => switchScreen('window'));
-            document.getElementById('back-to-inflight-btn').addEventListener('click', () => switchScreen('inflight'));
-            timeSlider.addEventListener('input', updateCircleRadius);
-        }
-
-        function filterByRegion(region) {
-            state.currentRegion = region;
-            updateAirportMarkers();
-        }
-
-        function updateCircleRadius() {
-            const hours = parseFloat(timeSlider.value);
-            state.maxFlightTime = hours * 60 * 60 * 1000; // Convert to milliseconds
-            timeDisplay.textContent = `${hours} hours`;
-            if (state.circle) {
-                const radius = hours * 850 * 1000; // km/h * hours * 1000 for meters
-                state.circle.setRadius(radius);
-            }
-        }
-
-        function loadScript(src, callback) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = callback;
-            document.head.appendChild(script);
-        }
-
-        loadScript('https://unpkg.com/@turf/turf@6/turf.min.js', () => {
-            init();
-        });
     </script>
 </body>
-
 </html>
