@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Focus - Inflight</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    
+    <!-- Preload critical CSS -->
+    <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- CRITICAL AND DEFERRED CSS: Retaining the necessary styles from the original index.html -->
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            background-color: #111827;
+            color: white;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+        }
+
+        #app {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .screen {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .screen.is-active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        .loading-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #111827;
+            z-index: 100;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #374151;
+            border-bottom-color: #3b82f6;
+            border-radius: 50%;
+            animation: rotation 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Website Blocker Overlay */
+        #website-blocker {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .blocker-content {
+            max-width: 500px;
+            background: #1f2937;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .blocker-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Basic styling for initial content */
+        .bg-gray-900 { background-color: #111827; }
+        .text-white { color: white; }
+        .antialiased { -webkit-font-smoothing: antialiased; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .min-h-screen { min-height: 100vh; }
+        .w-full { width: 100%; }
+        .h-screen { height: 100vh; }
+        .flex-col { flex-direction: column; }
+        .hidden { display: none; }
+        
+        /* Rest of your CSS styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        button {
+            transition: transform 0.1s ease-out, background-color 0.2s ease;
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+        
+        /* NEW/MODIFIED TICKET STYLES AND ANIMATIONS */
+        
+        .boarding-pass-container {
+            perspective: 1200px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); /* Enhanced shadow for realism */
+        }
+        
+        #ticket-top, #ticket-bottom {
+            transition: transform 1.5s cubic-bezier(0.6, -0.28, 0.735, 0.045);
+            background-color: #ffffff;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05); /* Inner shadow for depth */
+        }
+
+        /* Wobble (slightly faster) */
+        @keyframes ticket-wobble {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-0.5deg); }
+            50% { transform: rotate(0.5deg); }
+            75% { transform: rotate(-0.25deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        .wobble-animation {
+            animation: ticket-wobble 0.4s ease-in-out; /* Adjusted timing */
+        }
+
+        /* Tearing animation (using the original keyframes) */
+        @keyframes tear-top-realistic {
+            0% {
+                transform: rotateZ(0) rotateX(0) translateY(0);
+                opacity: 1;
+            }
+            100% {
+                /* Increased rotation and translation for dramatic effect */
+                transform: rotateZ(-20deg) rotateX(30deg) translateY(-200%) translateX(-30%);
+                opacity: 0;
+            }
+        }
+
+        @keyframes tear-bottom-realistic {
+            0% {
+                transform: rotateZ(0) rotateX(0) translateY(0);
+                opacity: 1;
+            }
+            100% {
+                /* Increased rotation and translation for dramatic effect */
+                transform: rotateZ(15deg) rotateX(-25deg) translateY(200%) translateX(30%);
+                opacity: 0;
+            }
+        }
+
+        .tear-top-animation {
+            transform-origin: top center;
+            animation: tear-top-realistic 1.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+        }
+
+        .tear-bottom-animation {
+            transform-origin: bottom center;
+            animation: tear-bottom-realistic 1.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+        }
+        
+        /* Utility styles for map/dashboard */
+        .leaflet-popup-content-wrapper {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            border-radius: 8px;
+        }
+
+        .leaflet-popup-content {
+            margin: 12px 18px;
+            font-size: 14px;
+        }
+
+        .leaflet-popup-tip {
+            background: #1f2937;
+        }
+        
+        .inflight-tooltip {
+            background-color: #1f2937e0;
+            color: #f3f4f6;
+            border: none;
+            border-radius: 4px;
+            box-shadow: none;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .leaflet-tooltip-top.inflight-tooltip::before {
+            display: none;
+        }
+
+        .leaflet-control-zoom-in,
+        .leaflet-control-zoom-out {
+            background-color: #374151 !important;
+            color: #f9fafb !important;
+            border-color: #4b5563 !important;
+        }
+
+        .leaflet-control-zoom-in:hover,
+        .leaflet-control-zoom-out:hover {
+            background-color: #4b5563 !important;
+        }
+
+        .compact-button {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            min-height: auto;
+        }
+        
+        .compact-footer {
+            padding: 1rem;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white antialiased flex items-center justify-center min-h-screen">
+    <!-- Website Blocker Overlay (Unchanged) -->
+    <div id="website-blocker">
+        <div class="blocker-content">
+            <div class="blocker-icon">🚫</div>
+            <h2 class="text-2xl font-bold mb-4">Focus Session Active</h2>
+            <p class="text-gray-300 mb-4">You are currently in a focus session. Please complete your task before browsing other websites.</p>
+            <p class="text-gray-400 text-sm mb-6">Task: <span id="blocker-task">Your focus task</span></p>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <button id="continue-focus-btn" class="compact-button bg-green-600 text-white hover:bg-green-700">
+                    Continue Focusing
+                </button>
+                <button id="emergency-exit-btn" class="compact-button bg-red-600 text-white hover:bg-red-700">
+                    Emergency Exit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading screen for better perceived performance (Unchanged) -->
+    <div id="loading-screen" class="screen is-active loading-screen">
+        <div class="loader"></div>
+        <h2 class="text-xl font-bold">Flight Focus</h2>
+        <p class="text-gray-400 mt-2">Preparing for takeoff...</p>
+    </div>
+
+    <div id="app" class="w-full h-screen flex flex-col" style="display: none;">
+        <!-- Ticket Animation Screen (REWRITTEN FOR REALISM/AESTHETICS) -->
+        <div id="ticket-animation-screen" class="screen flex flex-col h-full items-center justify-center p-4 bg-gray-900">
+            <div id="boarding-pass-container" class="boarding-pass-container w-full max-w-sm mx-auto shadow-2xl">
+                <!-- Top Half (Main Info) -->
+                <div id="ticket-top" class="bg-white text-gray-800 p-4 rounded-t-xl border-b-2 border-dashed border-gray-300" style="font-family: 'Roboto Mono', monospace;">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-sm font-semibold text-blue-600">FLIGHT FOCUS</span>
+                        <span class="text-xs text-gray-500">BOARDING PASS</span>
+                    </div>
+                    <div class="flex justify-between items-end mb-4">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase">From / DEPARTURE</p>
+                            <p id="ticket-departure" class="text-3xl font-bold">---</p>
+                        </div>
+                        <span class="text-2xl text-gray-400">✈️</span>
+                        <div>
+                            <p class="text-xs text-gray-500 text-right uppercase">To / ARRIVAL</p>
+                            <p id="ticket-arrival" class="text-3xl font-bold">---</p>
+                        </div>
+                    </div>
+                    
+                    <div class="p-2 border border-gray-200 rounded-lg bg-gray-50">
+                        <p class="text-xs text-gray-500 mb-1">FOCUS TASK (DO NOT DISTURB)</p>
+                        <p id="ticket-task" class="text-base font-bold truncate">Your Task Here</p>
+                    </div>
+                </div>
+
+                <!-- Bottom Half (Stub/Details) -->
+                <div id="ticket-bottom" class="bg-white text-gray-800 p-4 rounded-b-xl" style="font-family: 'Roboto Mono', monospace;">
+                    <div class="flex justify-between text-center">
+                        <div>
+                            <p class="text-xs text-gray-500">Aircraft</p>
+                            <p id="ticket-aircraft" class="text-base font-bold">A320</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Seat</p>
+                            <p id="ticket-seat" class="text-xl font-bold text-red-600">--</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Duration</p>
+                            <p id="ticket-duration" class="text-base font-bold">--:--:--</p>
+                        </div>
+                    </div>
+                    <!-- Barcode/QR Code Placeholder for Realism -->
+                    <div class="mt-4 flex justify-between items-end">
+                        <div class="text-xs text-gray-400">#FF<span id="ticket-flight-code">0000</span></div>
+                        <!-- A faux barcode made of a black block with a white mask to create bars -->
+                        <div class="w-1/2 h-8 bg-gray-800 rounded-sm barcode-animation" style="mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><rect width="100%" height="100%" fill="black" /><path fill="white" d="M0 0h1v20H0zM2 0h1v20H2zM4 0h3v20H4zM8 0h1v20H8zM10 0h2v20h-2zM13 0h1v20h-1zM15 0h2v20h-2zM18 0h1v20h-1zM20 0h3v20h-3zM24 0h1v20h-1zM26 0h2v20h-2zM29 0h1v20h-1zM31 0h3v20h-3zM35 0h1v20h-1zM37 0h2v20h-2zM40 0h1v20h-1zM42 0h3v20h-3zM46 0h1v20h-1zM48 0h2v20h-2zM51 0h1v20h-1zM53 0h3v20h-3zM57 0h1v20h-1zM59 0h2v20h-2zM62 0h1v20h-1zM64 0h3v20h-3zM68 0h1v20h-1zM70 0h2v20h-2zM73 0h1v20h-1zM75 0h3v20h-3zM79 0h1v20h-1zM81 0h2v20h-2zM84 0h1v20h-1zM86 0h3v20h-3zM90 0h1v20h-1zM92 0h2v20h-2zM95 0h1v20h-1zM97 0h3v20h-3z" /></svg>'); mask-repeat: no-repeat; mask-size: cover;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inflight Screen (Unchanged) -->
+        <div id="inflight-screen" class="screen flex flex-col h-full">
+            <div id="inflight-dashboard" class="p-2 sm:p-4 bg-gray-800/70 backdrop-blur-md z-10 border-b border-gray-700 grid grid-cols-3 gap-2 sm:gap-4 items-center">
+                <div class="text-left" style="opacity: 0;">
+                    <div class="text-xs sm:text-sm text-gray-400">Time Remaining</div>
+                    <div id="time-left" class="text-lg sm:text-2xl font-bold" style="animation: pulse 2.5s infinite ease-in-out;">--:--:--</div>
+                </div>
+                <div class="text-center" style="opacity: 0;">
+                    <div class="text-xs sm:text-sm text-gray-400">Route</div>
+                    <div id="route-info" class="text-lg sm:text-2xl font-bold">--- → ---</div>
+                </div>
+                <div class="text-right" style="opacity: 0;">
+                    <div class="text-xs sm:text-sm text-gray-400">Distance</div>
+                    <div id="distance-info" class="text-lg sm:text-2xl font-bold">0 / 0 km</div>
+                </div>
+            </div>
+            <div id="map-inflight" class="flex-grow z-0"></div>
+            <footer class="compact-footer bg-gray-800/70 backdrop-blur-md z-10 border-t border-gray-700 text-center">
+                <div class="flex flex-row justify-center gap-2 flex-wrap">
+                    <button id="window-view-btn" class="compact-button bg-green-600 text-white hover:bg-green-700">
+                        Window View
+                    </button>
+                    <button id="end-flight-btn" class="compact-button bg-red-600 text-white hover:bg-red-700">
+                        Land Early
+                    </button>
+                </div>
+            </footer>
+        </div>
+
+        <!-- Window Screen (Unchanged) -->
+        <div id="window-screen" class="screen flex flex-col h-full bg-gray-900">
+            <div class="flex-grow flex items-center justify-center p-2 sm:p-4">
+                <div class="w-full max-w-4xl aspect-video">
+                    <iframe width="100%" height="100%" src="https://www.youtube.com/embed/h3GxcOzRKOQ?si=pZ7dMdkw4OUyHCF-&controls=0&autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                </div>
+            </div>
+            <footer class="compact-footer bg-gray-800/50 backdrop-blur-sm z-10 border-t border-gray-700 text-center">
+                <button id="back-to-inflight-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">
+                    Back to Flight
+                </button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modified JavaScript for the Inflight Session -->
+    <script>
+        // --- UTILITY FUNCTIONS DUPLICATED FOR SELF-CONTAINED FILE ---
+
+        function formatTime(ms) {
+            if (ms < 0) ms = 0;
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        // --- WEBSITE BLOCKER LOGIC (Copied) ---
+
+        let isFocusSessionActive = false;
+        let focusStartTime = null;
+        let focusEndTime = null;
+        let blockedUrls = [];
+        
+        const defaultBlockedUrls = [
+            'facebook.com', 'twitter.com', 'instagram.com', 'youtube.com', 'netflix.com', 
+            'reddit.com', 'tiktok.com', 'pinterest.com', 'linkedin.com', 'whatsapp.com', 
+            'discord.com', 'twitch.tv', 'amazon.com', 'ebay.com', 'aliexpress.com', 
+            'shopping.com', 'news.google.com', 'cnn.com', 'bbc.com', 'espn.com'
+        ];
+        
+        function initializeBlockedUrls() {
+            const savedUrls = localStorage.getItem('flightFocusBlockedUrls');
+            blockedUrls = savedUrls ? JSON.parse(savedUrls) : defaultBlockedUrls;
+        }
+        
+        function shouldBlockUrl(url) {
+            if (!isFocusSessionActive) return false;
+            try {
+                const urlObj = new URL(url);
+                const hostname = urlObj.hostname.toLowerCase();
+                return blockedUrls.some(blockedUrl => 
+                    hostname.includes(blockedUrl.toLowerCase()) || 
+                    hostname.endsWith('.' + blockedUrl.toLowerCase())
+                );
+            } catch (e) { return false; }
+        }
+        
+        function showWebsiteBlocker() {
+            const blocker = document.getElementById('website-blocker');
+            const taskElement = document.getElementById('blocker-task');
+            if (taskElement && state.focusTask) { taskElement.textContent = state.focusTask; }
+            blocker.style.display = 'flex';
+        }
+        
+        function hideWebsiteBlocker() {
+            document.getElementById('website-blocker').style.display = 'none';
+        }
+        
+        function handleBeforeUnload(e) {
+            if (isFocusSessionActive) {
+                e.preventDefault();
+                e.returnValue = 'You are in a focus session. Are you sure you want to leave?';
+                return e.returnValue;
+            }
+        }
+        
+        function handleVisibilityChange() {
+            if (isFocusSessionActive && document.hidden) {
+                document.addEventListener('visibilitychange', handleReturnFromOtherTab, { once: true });
+            }
+        }
+        
+        function handleReturnFromOtherTab() {
+            if (isFocusSessionActive) {
+                showWebsiteBlocker();
+            }
+        }
+        
+        function startFocusProtection() {
+            isFocusSessionActive = true;
+            focusStartTime = Date.now();
+            focusEndTime = focusStartTime + state.focusDuration;
+            window.addEventListener('beforeunload', handleBeforeUnload);
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            const originalWindowOpen = window.open;
+            window.open = function(...args) {
+                if (isFocusSessionActive && args[0] && shouldBlockUrl(args[0])) {
+                    showWebsiteBlocker(args[0]);
+                    return null;
+                }
+                return originalWindowOpen.apply(this, args);
+            };
+        }
+        
+        function stopFocusProtection() {
+            isFocusSessionActive = false;
+            focusStartTime = null;
+            focusEndTime = null;
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.open = Window.prototype.open;
+            hideWebsiteBlocker();
+        }
+
+        let currentUrl = window.location.href;
+        setInterval(() => {
+            if (window.location.href !== currentUrl && isFocusSessionActive && shouldBlockUrl(window.location.href)) {
+                showWebsiteBlocker(window.location.href);
+                window.history.pushState(null, '', currentUrl);
+            } else {
+                currentUrl = window.location.href;
+            }
+        }, 100);
+        document.addEventListener('click', (e) => {
+            let target = e.target;
+            while (target && target.tagName !== 'A') { target = target.parentElement; }
+            if (target && target.href && shouldBlockUrl(target.href)) { e.preventDefault(); e.stopPropagation(); showWebsiteBlocker(target.href); }
+        }, true);
+        document.addEventListener('submit', (e) => {
+            if (e.target.action && shouldBlockUrl(e.target.action)) { e.preventDefault(); e.stopPropagation(); showWebsiteBlocker(e.target.action); }
+        }, true);
+        
+        // Website blocker event listeners
+        document.getElementById('continue-focus-btn').addEventListener('click', hideWebsiteBlocker);
+        document.getElementById('emergency-exit-btn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to exit the focus session early? This will be recorded as an incomplete flight.')) {
+                endFocusSession(false);
+                hideWebsiteBlocker();
+            }
+        });
+
+        // --- CORE APPLICATION LOGIC ---
+
+        const screens = {
+            ticket: document.getElementById('ticket-animation-screen'),
+            inflight: document.getElementById('inflight-screen'),
+            window: document.getElementById('window-screen')
+        };
+        const allScreens = document.querySelectorAll('.screen');
+        const boardingPassContainer = document.getElementById('boarding-pass-container');
+        const ticketTop = document.getElementById('ticket-top');
+        const ticketBottom = document.getElementById('ticket-bottom');
+        const inflightMapEl = document.getElementById('map-inflight');
+        const inflightDashboardItems = document.querySelectorAll('#inflight-dashboard > div');
+        const timeLeftEl = document.getElementById('time-left');
+        const routeInfoEl = document.getElementById('route-info');
+        const distanceInfoEl = document.getElementById('distance-info');
+        const endFlightBtn = document.getElementById('end-flight-btn');
+        let inflightMap;
+        let routeLine, planeMarker;
+
+        let state = {
+            departure: null,
+            arrival: null,
+            selectedSeat: null,
+            focusTask: '',
+            flightDistance: 0,
+            focusDuration: 0,
+            timerInterval: null,
+            startTime: null,
+            isLongHaul: false,
+            flightCode: '' // NEW: Added flight code to state
+        };
+
+        function switchScreen(screenName) {
+            const newScreen = screens[screenName];
+            if (!newScreen) return;
+            allScreens.forEach(s => s.classList.remove('is-active'));
+            newScreen.classList.add('is-active');
+            
+            if (screenName === 'inflight') {
+                inflightDashboardItems.forEach((item, index) => {
+                    item.style.opacity = 0;
+                    item.style.animation = `fadeInUp 0.6s ease forwards ${0.2 + index * 0.2}s`;
+                });
+            }
+        }
+        
+        function saveFlightToPassport(completed) {
+            const focusedTime = Date.now() - state.startTime;
+            let passport = JSON.parse(localStorage.getItem('flightFocusPassport') || '[]');
+            const flightRecord = {
+                id: Date.now(),
+                flightCode: state.flightCode,
+                departure: { code: state.departure.code, name: state.departure.name },
+                arrival: { code: state.arrival.code, name: state.arrival.name },
+                task: state.focusTask,
+                seat: state.selectedSeat,
+                aircraft: state.isLongHaul ? 'B777' : 'A320',
+                duration: completed ? state.focusDuration : focusedTime,
+                distance: state.flightDistance,
+                completed: completed,
+                date: new Date().toISOString()
+            };
+            passport.push(flightRecord);
+            localStorage.setItem('flightFocusPassport', JSON.stringify(passport));
+            return flightRecord.id;
+        }
+
+        function initInflightMap() {
+            if (inflightMap) { inflightMap.remove(); inflightMap = null; }
+            inflightMap = L.map('map-inflight');
+            inflightMap.invalidateSize();
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(inflightMap);
+
+            const bounds = L.latLngBounds([
+                [state.departure.lat, state.departure.lng],
+                [state.arrival.lat, state.arrival.lng]
+            ]);
+            inflightMap.fitBounds(bounds, { padding: [50, 50] });
+
+            const inflightAirportIcon = L.divIcon({
+                html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="color: #38bdf8; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7));">
+                    <path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.1.42-.25.692-.455.272-.204.58-.479.869-.819.289-.34.546-.72.758-1.139.213-.419.35-.882.414-1.393.065-.512.074-1.043.028-1.598a8.94 8.94 0 00-.424-2.22c-.228-.556-.52-1.07-.88-1.532-.36-.463-.785-.875-1.255-1.22a.75.75 0 00-.968-.065A8.94 8.94 0 005 8.5c0 .555.01.11.028.166.064.511.2.974.414 1.393.212.419.47.799.758 1.139.289-.34.597.615.869-.819.272.205.506.355.692.455a5.741 5.741 0 00.281.14l.018.008.006.003zM10 11.25a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" clip-rule="evenodd" />
+                </svg>`,
+                className: '', iconSize: [20, 20], iconAnchor: [10, 20]
+            });
+
+            [state.departure, state.arrival].forEach(airport => {
+                L.marker([airport.lat, airport.lng], { icon: inflightAirportIcon })
+                    .addTo(inflightMap)
+                    .bindTooltip(`${airport.code}`, { permanent: true, direction: 'top', offset: L.point(0, -20), className: 'inflight-tooltip' });
+            });
+
+            routeLine = L.polyline([[state.departure.lat, state.departure.lng], [state.arrival.lat, state.arrival.lng]], { color: '#3b82f6', weight: 3 }).addTo(inflightMap);
+
+            const a320SvgUrl = 'https://hufung.github.io/images/A320.svg';
+            const b777SvgUrl = 'https://hufung.github.io/images/B777.svg';
+            const isLongHaul = state.isLongHaul;
+            const airplaneSvgUrl = isLongHaul ? b777SvgUrl : a320SvgUrl;
+            const startPoint = L.latLng(state.departure.lat, state.departure.lng);
+            const endPoint = L.latLng(state.arrival.lat, state.arrival.lng);
+            const isWestbound = startPoint.lng > endPoint.lng;
+            const verticalFlip = isWestbound ? ' scaleX(-1)' : '';
+            const vertw = isWestbound ? ' ' : 'scaleY(-1)';
+            const planeIconHtml = `
+                <div style="transform: rotate(0deg); width: 50px; height: 50px;" id="plane-icon-div">
+                    <img src="${airplaneSvgUrl}" style="transform: rotate(180deg) ${verticalFlip};width: 50px; height: 50px; position: absolute; top: 17px;filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7));" />
+                    <span style="font-size: 10px; position: absolute; top: 0px; left: 50%; transform: translateX(-50%) rotate(180deg) ${vertw}; color: #ffffff; font-family: 'Roboto Mono', monospace;">
+                        ${isLongHaul ? 'B777' : 'A320'}
+                    </span>
+                </div>`;
+
+            const planeIcon = L.divIcon({
+                html: planeIconHtml,
+                className: '',
+                iconSize: [50, 50],
+                iconAnchor: [20, 20]
+            });
+            planeMarker = L.marker([state.departure.lat, state.departure.lng], { icon: planeIcon }).addTo(inflightMap);
+        }
+        
+        function updateInflightUI(remainingTime = state.focusDuration, progress = 0) {
+            timeLeftEl.textContent = formatTime(remainingTime);
+            routeInfoEl.textContent = `${state.departure.code} → ${state.arrival.code}`;
+            const distanceTraveled = Math.round(state.flightDistance * progress);
+            distanceInfoEl.textContent = `${distanceTraveled} / ${Math.round(state.flightDistance)} km`;
+
+            if (planeMarker && routeLine && window.turf) {
+                const startPoint = L.latLng(state.departure.lat, state.departure.lng);
+                const endPoint = L.latLng(state.arrival.lat, state.arrival.lng);
+                
+                const newLat = startPoint.lat + (endPoint.lat - startPoint.lat) * progress;
+                const newLng = startPoint.lng + (endPoint.lng - startPoint.lng) * progress;
+                planeMarker.setLatLng([newLat, newLng]);
+                
+                const bearing = turf.bearing(turf.point([startPoint.lng, startPoint.lat]), turf.point([endPoint.lng, endPoint.lat]));
+                const isWestbound = startPoint.lng > endPoint.lng;
+                const planeIconDiv = document.getElementById('plane-icon-div');
+                if (planeIconDiv) {
+                    const verticalFlip = isWestbound ? ' scaleY(-1)' : '';
+                    planeIconDiv.style.transform = `rotate(${bearing + 90}deg) scaleX(-1)${verticalFlip}`;
+                }
+            }
+        }
+
+        function endFocusSession(completed = false) {
+            clearInterval(state.timerInterval);
+            state.timerInterval = null;
+            stopFocusProtection();
+
+            const newFlightId = saveFlightToPassport(completed);
+            
+            localStorage.setItem('lastFlightStatus', completed ? 'completed' : 'diverted');
+            localStorage.setItem('lastFlightId', newFlightId);
+            
+            // Redirect back to index.html#passport
+            window.location.href = 'index.html#passport'; 
+        }
+
+        function startFlightSequence() {
+            // Populate new ticket fields
+            document.getElementById('ticket-departure').textContent = state.departure.code;
+            document.getElementById('ticket-arrival').textContent = state.arrival.code;
+            document.getElementById('ticket-task').textContent = state.focusTask;
+            document.getElementById('ticket-seat').textContent = state.selectedSeat;
+            document.getElementById('ticket-duration').textContent = formatTime(state.focusDuration);
+            document.getElementById('ticket-aircraft').textContent = state.isLongHaul ? 'B777' : 'A320';
+            document.getElementById('ticket-flight-code').textContent = state.flightCode.replace('FF', '');
+
+            switchScreen('ticket');
+
+            // 1. Start the subtle wobble animation immediately
+            boardingPassContainer.classList.add('wobble-animation');
+
+            // 2. After a short delay (e.g., after the wobble cycle finishes), trigger the tear
+            const tearDelay = 400; // milliseconds
+            setTimeout(() => {
+                ticketTop.classList.add('tear-top-animation');
+                ticketBottom.classList.add('tear-bottom-animation');
+            }, tearDelay);
+
+            // 3. After the tear is complete, switch to the inflight screen
+            const flightSwitchDelay = tearDelay + 1500; // Tear animation duration is 1.5s
+            setTimeout(() => {
+                switchScreen('inflight');
+                
+                let mapInitAttempts = 0;
+                const pollForMapContainer = setInterval(() => {
+                    // Poll checks if the map element is visible and Turf.js has loaded
+                    if (inflightMapEl && inflightMapEl.clientHeight > 0 && inflightMapEl.clientWidth > 0 && window.turf) {
+                        clearInterval(pollForMapContainer);
+                        initInflightMap();
+                        updateInflightUI();
+                        state.startTime = Date.now();
+                        
+                        startFocusProtection();
+                        
+                        state.timerInterval = setInterval(() => {
+                            const elapsedTime = Date.now() - state.startTime;
+                            const remainingTime = state.focusDuration - elapsedTime;
+                            if (remainingTime <= 0) {
+                                endFocusSession(true);
+                                return;
+                            }
+                            const progress = elapsedTime / state.focusDuration;
+                            updateInflightUI(remainingTime, progress);
+                        }, 100);
+                    } else if (++mapInitAttempts > 200) {
+                        clearInterval(pollForMapContainer);
+                        alert("Error loading the flight map. Please try again.");
+                        window.location.href = 'index.html';
+                    }
+                }, 10);
+            }, flightSwitchDelay);
+        }
+
+        function init() {
+            initializeBlockedUrls();
+            
+            const savedFlightData = localStorage.getItem('currentFlightData');
+            if (!savedFlightData) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                const parsedData = JSON.parse(savedFlightData);
+                // Assign data and generate a unique flight code
+                Object.assign(state, parsedData);
+                state.flightCode = `FF${Math.floor(Math.random() * 9000) + 1000}`;
+                
+                localStorage.removeItem('currentFlightData'); // Clear once loaded
+            } catch (e) {
+                console.error("Failed to load flight data:", e);
+                window.location.href = 'index.html';
+                return;
+            }
+
+            endFlightBtn.addEventListener('click', () => endFocusSession(false));
+            document.getElementById('window-view-btn').addEventListener('click', () => switchScreen('window'));
+            document.getElementById('back-to-inflight-btn').addEventListener('click', () => switchScreen('inflight'));
+
+            startFlightSequence();
+        }
+        
+        // --- Loading Manager ---
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                const loadingScreen = document.getElementById('loading-screen');
+                const app = document.getElementById('app');
+                if (loadingScreen) loadingScreen.classList.remove('is-active');
+                if (app) app.style.display = 'flex';
+                
+                const leafletScript = document.createElement('script');
+                leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                leafletScript.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+                leafletScript.crossOrigin = '';
+                leafletScript.onload = function() {
+                     // Load Turf for bearing calculations
+                    const turfScript = document.createElement('script');
+                    turfScript.src = 'https://unpkg.com/@turf/turf@6/turf.min.js';
+                    turfScript.onload = init;
+                    document.head.appendChild(turfScript);
+                };
+                document.head.appendChild(leafletScript);
+            }, 800);
+        });
+
+        setTimeout(function() {
+            const loadingScreen = document.getElementById('loading-screen');
+            const app = document.getElementById('app');
+            if (loadingScreen && loadingScreen.classList.contains('is-active')) {
+                loadingScreen.classList.remove('is-active');
+                if (app) app.style.display = 'flex';
+            }
+        }, 3000);
+    </script>
+</body>
+</html>
