@@ -393,6 +393,50 @@
     <!-- Modified JavaScript for the Inflight Session -->
     <script>
         // --- UTILITY FUNCTIONS DUPLICATED FOR SELF-CONTAINED FILE ---
+        let originalTitle = document.title;
+        
+        // Mobile device detection and optimization
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        
+        // Mobile-specific optimizations
+        if (isMobile) {
+            
+            // Prevent zoom on input focus for iOS
+            if (isIOS) {
+                const meta = document.createElement('meta');
+                meta.name = 'viewport';
+                meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+            }
+            
+            // Better touch feedback
+            document.addEventListener('touchstart', function() {}, { passive: true });
+            document.addEventListener('touchend', function() {}, { passive: true });
+        }
+
+        // Enhanced notification system with mobile support
+        if (!("Notification" in window)) {
+            console.log("This browser does not support desktop notification");
+        } else if (Notification.permission === 'default') {
+            // Request permission on user interaction
+            setTimeout(() => {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        new Notification("Notifications enabled!", {
+                            body: "You'll stay focused with train notifications",
+                            icon: "https://cdn-icons-png.flaticon.com/512/564/564619.png"
+                        });
+                    }
+                });
+            }, 2000);
+        }
+        document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === 'visible') {
+                    handleUserReturned();
+                } else {
+                    handleUserLeft();
+                }
+            });
 
         function formatTime(ms) {
             if (ms < 0) ms = 0;
@@ -814,6 +858,74 @@
                 if (app) app.style.display = 'flex';
             }
         }, 3000);
+        function handleUserLeft() {
+            // Update UI (though user can't see it immediately
+            document.title = "⚠️ Come back!";
+
+            // Mobile-friendly notifications
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if ('Notification' in window && Notification.permission === 'granted') {
+                // Strategy A: System Notification (works better on mobile)
+                const notification = new Notification("Focus Lost!", {
+                    body: isMobile ? 
+                        "You switched apps. Return to continue your focus session." :
+                        "You switched tabs. Come back to finish your task!",
+                    icon: "https://cdn-icons-png.flaticon.com/512/564/564619.png",
+                    tag: "focus-session",
+                    requireInteraction: true
+                });
+
+                notification.onclick = function () {
+                    window.focus();
+                    this.close();
+                };
+            }
+
+            // Mobile-specific fallback
+            if (isMobile) {
+                // Strategy B: Haptic feedback if available
+                if (navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200]); // Strong vibration pattern
+                }
+                
+                // Strategy C: Show mobile toast instead of alert
+                setTimeout(() => {
+                    if (app && app.showMobileToast) {
+                        app.showMobileToast("⚠️ Focus lost! Return to continue");
+                    }
+                    
+                    // Auto-stop after delay for mobile
+                    setTimeout(() => {
+                        if (app && app.state && app.state.isFocusing) {
+                            cancelAnimationFrame(app.state.animationFrameId);
+                            console.log("Auto-stopped focus session due to tab switch");
+                            // Don't reload immediately on mobile, just stop the session
+                            if (confirm("Focus session interrupted. Would you like to restart?")) {
+                                location.reload();
+                            }
+                        }
+                    }, 5000);
+                }, 1000);
+            } else {
+                // Desktop alert fallback
+                setTimeout(() => {
+                    alert("You switched tabs! Your Train May Need to stop.");
+                    if (app && app.state && app.state.isFocusing) {
+                        cancelAnimationFrame(app.state.animationFrameId);
+                        location.reload();
+                    }
+                }, 3000);
+            }
+        }
+
+        function handleUserReturned() {
+
+            // Restore Title
+            document.title = originalTitle;
+
+            console.log("User returned at " + new Date().toLocaleTimeString());
+        };
     </script>
 </body>
 </html>
