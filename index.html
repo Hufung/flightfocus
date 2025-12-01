@@ -353,11 +353,65 @@
     </style>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
     <meta name="google-site-verification" content="qcOFByDf3ybTrCSraFeUdqw3PcoSRuX6nw5DHvyu6fk" />
 </head>
 
 <body class="bg-gray-900 text-white antialiased flex items-center justify-center min-h-screen">
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" style="display: none;">
+        <div class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-700">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Welcome to Flight Focus</h2>
+                <button id="close-auth-modal" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+
+            <!-- Auth Tabs -->
+            <div class="flex mb-6 border-b border-gray-700">
+                <button id="login-tab" class="flex-1 py-3 text-center font-semibold border-b-2 border-blue-500 text-blue-500">Login</button>
+                <button id="register-tab" class="flex-1 py-3 text-center font-semibold border-b-2 border-transparent text-gray-400 hover:text-white">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                    <input type="email" id="login-email" required class="w-full bg-gray-700 text-white rounded-lg p-3 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="your@email.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                    <input type="password" id="login-password" required class="w-full bg-gray-700 text-white rounded-lg p-3 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Your password">
+                </div>
+                <div id="login-error" class="text-red-400 text-sm hidden"></div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">
+                    Login
+                </button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Full Name</label>
+                    <input type="text" id="register-name" required class="w-full bg-gray-700 text-white rounded-lg p-3 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="John Doe">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                    <input type="email" id="register-email" required class="w-full bg-gray-700 text-white rounded-lg p-3 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="your@email.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                    <input type="password" id="register-password" required minlength="6" class="w-full bg-gray-700 text-white rounded-lg p-3 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="At least 6 characters">
+                </div>
+                <div id="register-error" class="text-red-400 text-sm hidden"></div>
+                <div id="register-success" class="text-green-400 text-sm hidden"></div>
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition">
+                    Create Account
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- Website Blocker Overlay (Kept for consistency, but logic must be simplified in JS) -->
     <div id="website-blocker">
         <div class="blocker-content">
@@ -387,7 +441,17 @@
         <!-- Planning Screen (index.html) -->
         <div id="planning-screen" class="screen flex flex-col h-full is-active">
             <header class="p-4 bg-gray-800/50 backdrop-blur-sm z-10 border-b border-gray-700">
-                <h1 class="text-2xl font-bold text-center">✈️ Flight Focus</h1>
+                <div class="flex justify-between items-center mb-2">
+                    <h1 class="text-2xl font-bold">✈️ Flight Focus</h1>
+                    <!-- User Menu -->
+                    <div id="user-menu" class="flex items-center gap-2">
+                        <button id="auth-btn" class="compact-button bg-blue-600 text-white hover:bg-blue-700">Login</button>
+                        <div id="user-info" class="hidden flex items-center gap-2">
+                            <span id="user-name" class="text-sm text-gray-300"></span>
+                            <button id="logout-btn" class="compact-button bg-gray-600 text-white hover:bg-gray-700">Logout</button>
+                        </div>
+                    </div>
+                </div>
                 <p id="planning-instructions" class="text-center text-gray-400 mt-1 ">Select your departure airport from the map.</p>
                 <center>
                 <button class="compact-button bg-blue-600 text-white hover:bg-red-500 text-center" onclick="window.location.href = 'https://trainfocus.free.nf/'">New version (Train focus)</button>
@@ -485,6 +549,193 @@
 
     <!-- Modified JavaScript for Planning/Seating/Passport -->
     <script>
+        // --- SUPABASE CONFIGURATION ---
+        // IMPORTANT: These values should be set as environment variables in Netlify
+        // SUPABASE_URL and SUPABASE_ANON_KEY
+        const SUPABASE_URL = 'REPLACE_WITH_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'REPLACE_WITH_SUPABASE_ANON_KEY';
+
+        let supabase = null;
+        let currentUser = null;
+
+        // Initialize Supabase client
+        function initSupabase() {
+            if (typeof window.supabase !== 'undefined' && SUPABASE_URL !== 'REPLACE_WITH_SUPABASE_URL') {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                return true;
+            }
+            return false;
+        }
+
+        // --- AUTH UI ELEMENTS ---
+        const authModal = document.getElementById('auth-modal');
+        const authBtn = document.getElementById('auth-btn');
+        const closeAuthModal = document.getElementById('close-auth-modal');
+        const loginTab = document.getElementById('login-tab');
+        const registerTab = document.getElementById('register-tab');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const loginError = document.getElementById('login-error');
+        const registerError = document.getElementById('register-error');
+        const registerSuccess = document.getElementById('register-success');
+        const userInfo = document.getElementById('user-info');
+        const userName = document.getElementById('user-name');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // --- AUTH FUNCTIONS ---
+        function showAuthModal() {
+            authModal.style.display = 'flex';
+        }
+
+        function hideAuthModal() {
+            authModal.style.display = 'none';
+            loginError.classList.add('hidden');
+            registerError.classList.add('hidden');
+            registerSuccess.classList.add('hidden');
+        }
+
+        function switchToLogin() {
+            loginTab.classList.add('border-blue-500', 'text-blue-500');
+            loginTab.classList.remove('border-transparent', 'text-gray-400');
+            registerTab.classList.remove('border-blue-500', 'text-blue-500');
+            registerTab.classList.add('border-transparent', 'text-gray-400');
+            loginForm.classList.remove('hidden');
+            registerForm.classList.add('hidden');
+        }
+
+        function switchToRegister() {
+            registerTab.classList.add('border-blue-500', 'text-blue-500');
+            registerTab.classList.remove('border-transparent', 'text-gray-400');
+            loginTab.classList.remove('border-blue-500', 'text-blue-500');
+            loginTab.classList.add('border-transparent', 'text-gray-400');
+            registerForm.classList.remove('hidden');
+            loginForm.classList.add('hidden');
+        }
+
+        function updateUIForUser(user) {
+            if (user) {
+                currentUser = user;
+                authBtn.classList.add('hidden');
+                userInfo.classList.remove('hidden');
+                userInfo.classList.add('flex');
+                userName.textContent = user.user_metadata?.full_name || user.email.split('@')[0];
+            } else {
+                currentUser = null;
+                authBtn.classList.remove('hidden');
+                userInfo.classList.add('hidden');
+                userInfo.classList.remove('flex');
+                userName.textContent = '';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            if (!supabase) {
+                loginError.textContent = 'Supabase is not configured. Please set up environment variables.';
+                loginError.classList.remove('hidden');
+                return;
+            }
+
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (error) throw error;
+
+                updateUIForUser(data.user);
+                hideAuthModal();
+                loadPassport(); // Reload passport from Supabase
+            } catch (error) {
+                loginError.textContent = error.message;
+                loginError.classList.remove('hidden');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            if (!supabase) {
+                registerError.textContent = 'Supabase is not configured. Please set up environment variables.';
+                registerError.classList.remove('hidden');
+                return;
+            }
+
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            full_name: name
+                        }
+                    }
+                });
+
+                if (error) throw error;
+
+                registerSuccess.textContent = 'Account created! Please check your email to verify your account, then log in.';
+                registerSuccess.classList.remove('hidden');
+                registerError.classList.add('hidden');
+
+                // Clear form
+                document.getElementById('register-name').value = '';
+                document.getElementById('register-email').value = '';
+                document.getElementById('register-password').value = '';
+            } catch (error) {
+                registerError.textContent = error.message;
+                registerError.classList.remove('hidden');
+                registerSuccess.classList.add('hidden');
+            }
+        }
+
+        async function handleLogout() {
+            if (!supabase) return;
+
+            try {
+                await supabase.auth.signOut();
+                updateUIForUser(null);
+                state.passport = [];
+                displayPassport();
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        async function checkAuth() {
+            if (!supabase) return;
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                updateUIForUser(user);
+            } catch (error) {
+                console.error('Auth check error:', error);
+            }
+        }
+
+        // Initialize auth event listeners
+        function initAuthListeners() {
+            authBtn.addEventListener('click', showAuthModal);
+            closeAuthModal.addEventListener('click', hideAuthModal);
+            loginTab.addEventListener('click', switchToLogin);
+            registerTab.addEventListener('click', switchToRegister);
+            loginForm.addEventListener('submit', handleLogin);
+            registerForm.addEventListener('submit', handleRegister);
+            logoutBtn.addEventListener('click', handleLogout);
+
+            // Close modal when clicking outside
+            authModal.addEventListener('click', (e) => {
+                if (e.target === authModal) hideAuthModal();
+            });
+        }
+
         // --- CSV DATA (Moved from inside parseAirportData) ---
         const airportCsvData = `name,code,lat,lng
 Hartsfield-Jackson Atlanta Int'l,ATL,33.6407,-84.4277
@@ -894,10 +1145,46 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
         let airportMarkers = [];
 
         // --- Passport Functions ---
-        function loadPassport() {
-            const savedPassport = localStorage.getItem('flightFocusPassport');
-            if (savedPassport) {
-                state.passport = JSON.parse(savedPassport);
+        async function loadPassport() {
+            // If user is logged in and Supabase is available, fetch from database
+            if (supabase && currentUser) {
+                try {
+                    const { data, error } = await supabase
+                        .from('flights')
+                        .select('*')
+                        .eq('user_id', currentUser.id)
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+
+                    // Transform Supabase data to match local format
+                    state.passport = data.map(flight => ({
+                        id: flight.id,
+                        flightCode: flight.flight_code,
+                        departure: { code: flight.departure_code, name: flight.departure_name },
+                        arrival: { code: flight.arrival_code, name: flight.arrival_name },
+                        task: flight.task,
+                        seat: flight.seat,
+                        aircraft: flight.aircraft,
+                        duration: flight.duration,
+                        distance: flight.distance,
+                        completed: flight.completed,
+                        date: flight.created_at
+                    }));
+                } catch (error) {
+                    console.error('Error loading passport from Supabase:', error);
+                    // Fallback to localStorage
+                    const savedPassport = localStorage.getItem('flightFocusPassport');
+                    if (savedPassport) {
+                        state.passport = JSON.parse(savedPassport);
+                    }
+                }
+            } else {
+                // Fallback to localStorage for non-logged-in users
+                const savedPassport = localStorage.getItem('flightFocusPassport');
+                if (savedPassport) {
+                    state.passport = JSON.parse(savedPassport);
+                }
             }
         }
 
@@ -957,9 +1244,10 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
                     seat.style.animation = `fadeInUp 0.5s ease forwards ${index * 0.005}s`;
                 });
             } else if (screenName === 'passport') {
-                loadPassport();
-                const lastId = parseInt(localStorage.getItem('lastFlightId'));
-                displayPassport(!!localStorage.getItem('lastFlightStatus'), lastId);
+                loadPassport().then(() => {
+                    const lastId = parseInt(localStorage.getItem('lastFlightId'));
+                    displayPassport(!!localStorage.getItem('lastFlightStatus'), lastId);
+                });
             } else if (screenName === 'planning') {
                 state.departure = null;
                 state.arrival = null;
@@ -1004,14 +1292,21 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
         }
 
         // --- Initialization ---
-        function init() {
+        async function init() {
+            // Initialize Supabase
+            initSupabase();
+            initAuthListeners();
+
+            // Check if user is already logged in
+            await checkAuth();
+
             initializeBlockedUrls(); // Set up base blocked URLs for flight.html to inherit
-            loadPassport();
+            await loadPassport();
             parseAirportData();
             initPlanningMap();
             addEventListeners();
             detectMobile();
-            
+
             // Check for return from flight session
             const flightStatus = localStorage.getItem('lastFlightStatus');
             if (flightStatus) {

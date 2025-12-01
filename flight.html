@@ -16,6 +16,7 @@
     <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
     <!-- CRITICAL AND DEFERRED CSS: Retaining the necessary styles from the original index.html -->
     <style>
@@ -392,6 +393,28 @@
 
     <!-- Modified JavaScript for the Inflight Session -->
     <script>
+        // --- SUPABASE CONFIGURATION ---
+        const SUPABASE_URL = 'REPLACE_WITH_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'REPLACE_WITH_SUPABASE_ANON_KEY';
+
+        let supabaseClient = null;
+        let currentUser = null;
+
+        // Initialize Supabase client
+        async function initSupabase() {
+            if (typeof window.supabase !== 'undefined' && SUPABASE_URL !== 'REPLACE_WITH_SUPABASE_URL') {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                try {
+                    const { data: { user } } = await supabaseClient.auth.getUser();
+                    currentUser = user;
+                } catch (error) {
+                    console.error('Auth check error:', error);
+                }
+                return true;
+            }
+            return false;
+        }
+
         // --- UTILITY FUNCTIONS DUPLICATED FOR SELF-CONTAINED FILE ---
         let originalTitle = document.title;
         
@@ -624,10 +647,9 @@
                 });
             }
         }
-        
-        function saveFlightToPassport(completed) {
+
+        async function saveFlightToPassport(completed) {
             const focusedTime = Date.now() - state.startTime;
-            let passport = JSON.parse(localStorage.getItem('flightFocusPassport') || '[]');
             const flightRecord = {
                 id: Date.now(),
                 flightCode: state.flightCode,
@@ -641,8 +663,40 @@
                 completed: completed,
                 date: new Date().toISOString()
             };
-            passport.push(flightRecord);
-            localStorage.setItem('flightFocusPassport', JSON.stringify(passport));
+
+            // If user is logged in and Supabase is available, save to database
+            if (supabaseClient && currentUser) {
+                try {
+                    const { error } = await supabaseClient.from('flights').insert({
+                        user_id: currentUser.id,
+                        flight_code: flightRecord.flightCode,
+                        departure_code: flightRecord.departure.code,
+                        departure_name: flightRecord.departure.name,
+                        arrival_code: flightRecord.arrival.code,
+                        arrival_name: flightRecord.arrival.name,
+                        task: flightRecord.task,
+                        seat: flightRecord.seat,
+                        aircraft: flightRecord.aircraft,
+                        duration: flightRecord.duration,
+                        distance: flightRecord.distance,
+                        completed: flightRecord.completed
+                    });
+
+                    if (error) throw error;
+                } catch (error) {
+                    console.error('Error saving flight to Supabase:', error);
+                    // Fallback to localStorage
+                    let passport = JSON.parse(localStorage.getItem('flightFocusPassport') || '[]');
+                    passport.push(flightRecord);
+                    localStorage.setItem('flightFocusPassport', JSON.stringify(passport));
+                }
+            } else {
+                // Save to localStorage for non-logged-in users
+                let passport = JSON.parse(localStorage.getItem('flightFocusPassport') || '[]');
+                passport.push(flightRecord);
+                localStorage.setItem('flightFocusPassport', JSON.stringify(passport));
+            }
+
             return flightRecord.id;
         }
 
@@ -727,18 +781,18 @@
             }
         }
 
-        function endFocusSession(completed = false) {
+        async function endFocusSession(completed = false) {
             clearInterval(state.timerInterval);
             state.timerInterval = null;
             stopFocusProtection();
 
-            const newFlightId = saveFlightToPassport(completed);
-            
+            const newFlightId = await saveFlightToPassport(completed);
+
             localStorage.setItem('lastFlightStatus', completed ? 'completed' : 'diverted');
             localStorage.setItem('lastFlightId', newFlightId);
-            
+
             // Redirect back to index.html#passport
-            window.location.href = 'index.html#passport'; 
+            window.location.href = 'index.html#passport';
         }
 
         function startFlightSequence() {
@@ -798,9 +852,12 @@
             }, flightSwitchDelay);
         }
 
-        function init() {
+        async function init() {
+            // Initialize Supabase and check auth
+            await initSupabase();
+
             initializeBlockedUrls();
-            
+
             const savedFlightData = localStorage.getItem('currentFlightData');
             if (!savedFlightData) {
                 window.location.href = 'index.html';
@@ -812,7 +869,7 @@
                 // Assign data and generate a unique flight code
                 Object.assign(state, parsedData);
                 state.flightCode = `FF${Math.floor(Math.random() * 9000) + 1000}`;
-                
+
                 localStorage.removeItem('currentFlightData'); // Clear once loaded
             } catch (e) {
                 console.error("Failed to load flight data:", e);
