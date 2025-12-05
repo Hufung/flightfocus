@@ -560,7 +560,7 @@
 
         // Initialize Supabase client
         function initSupabase() {
-            if (typeof window.supabase !== 'undefined' && SUPABASE_URL !== 'https://jwqpmxglcylgyjvhlipc.supabase.co') {
+            if (typeof window.supabase !== 'undefined' && SUPABASE_URL !== 'REPLACE_WITH_SUPABASE_URL') {
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 return true;
             }
