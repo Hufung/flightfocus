@@ -552,8 +552,8 @@
         // --- SUPABASE CONFIGURATION ---
         // Credentials are fetched from Netlify Function (stored in environment variables)
         // This keeps sensitive data out of the HTML source code
-        let SUPABASE_DATABASE_URL = null;
-        let SUPABASE_ANON_KEY = null;
+        let supabaseUrl = null;
+        let supabaseAnonKey = null;
 
         let supabase = null;
         let currentUser = null;
@@ -565,9 +565,9 @@
                 if (!response.ok) {
                     throw new Error(`Failed to load config: ${response.statusText}`);
                 }
-                const { SUPABASE_DATABASE_URL, SUPABASE_ANON_KEY } = await response.json();
-                SUPABASE_DATABASE_URL = SUPABASE_DATABASE_URL;
-                SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+                const data = await response.json();
+                supabaseUrl = data.supabaseUrl;
+                supabaseAnonKey = data.supabaseAnonKey;
                 return true;
             } catch (error) {
                 console.error('Error loading Supabase config:', error);
@@ -577,8 +577,8 @@
 
         // Initialize Supabase client
         function initSupabase() {
-            if (typeof window.supabase !== 'undefined' && SUPABASE_DATABASE_URL && SUPABASE_ANON_KEY) {
-                supabase = window.supabase.createClient(SUPABASE_DATABASE_URL, SUPABASE_ANON_KEY);
+            if (typeof window.supabase !== 'undefined' && supabaseUrl && supabaseAnonKey) {
+                supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
                 return true;
             }
             return false;
