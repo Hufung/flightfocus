@@ -550,29 +550,38 @@
     <!-- Modified JavaScript for Planning/Seating/Passport -->
     <script>
         // --- SUPABASE CONFIGURATION ---
-        // IMPORTANT: These values should be set as environment variables in Netlify
-        // SUPABASE_URL and SUPABASE_ANON_KEY
-        const SUPABASE_URL = 'https://jwqpmxglcylgyjvhlipc.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3cXBteGdsY3lsZ3lqdmhsaXBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwOTYzMzMsImV4cCI6MjA3NjY3MjMzM30.Ydd6I_zatM_nyoalNIhxz1vRHp1dehxPNtoMwMEkLdw';
+        // Credentials are fetched from Netlify Function (stored in environment variables)
+        // This keeps sensitive data out of the HTML source code
+        let SUPABASE_DATABASE_URL = null;
+        let SUPABASE_ANON_KEY = null;
 
         let supabase = null;
         let currentUser = null;
 
-        // Initialize Supabase client
-        function initSupabase() {
+        // Fetch Supabase credentials from Netlify Function
+        async function loadSupabaseConfig() {
             try {
-                if (typeof window.supabase !== 'undefined' && SUPABASE_URL !== 'REPLACE_WITH_SUPABASE_URL') {
-                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    console.log('Supabase client initialized successfully');
-                    return true;
-                } else {
-                    console.error('Supabase client not available or URL not configured');
-                    return false;
+                const response = await fetch('/.netlify/functions/config');
+                if (!response.ok) {
+                    throw new Error(`Failed to load config: ${response.statusText}`);
                 }
+                const { SUPABASE_DATABASE_URL, SUPABASE_ANON_KEY } = await response.json();
+                SUPABASE_DATABASE_URL = SUPABASE_DATABASE_URL;
+                SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+                return true;
             } catch (error) {
-                console.error('Error initializing Supabase client:', error);
+                console.error('Error loading Supabase config:', error);
                 return false;
             }
+        }
+
+        // Initialize Supabase client
+        function initSupabase() {
+            if (typeof window.supabase !== 'undefined' && SUPABASE_DATABASE_URL && SUPABASE_ANON_KEY) {
+                supabase = window.supabase.createClient(SUPABASE_DATABASE_URL, SUPABASE_ANON_KEY);
+                return true;
+            }
+            return false;
         }
 
         // --- AUTH UI ELEMENTS ---
@@ -676,57 +685,18 @@
             const email = document.getElementById('register-email').value;
             const password = document.getElementById('register-password').value;
 
-            // Validate inputs
-            if (!name || !email || !password) {
-                registerError.textContent = 'Please fill in all fields.';
-                registerError.classList.remove('hidden');
-                return;
-            }
-
-            if (password.length < 6) {
-                registerError.textContent = 'Password must be at least 6 characters long.';
-                registerError.classList.remove('hidden');
-                return;
-            }
-
             try {
                 const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
                         data: {
-                            full_name: name,
-                            email: email
-                        },
-                        emailRedirectTo: window.location.origin + '/welcome'
+                            full_name: name
+                        }
                     }
                 });
 
-                if (error) {
-                    console.error('Supabase signup error:', error);
-                    let errorMessage = 'Registration failed. ';
-
-                    if (error.status === 500) {
-                        errorMessage += 'Server error occurred. Please try again later.';
-                    } else if (error.status === 400) {
-                        errorMessage += 'Invalid request. Please check your information.';
-                    } else if (error.status === 429) {
-                        errorMessage += 'Too many requests. Please try again later.';
-                    } else if (error.message.includes('email')) {
-                        errorMessage += 'Email is already registered or invalid.';
-                    } else if (error.message.includes('password')) {
-                        errorMessage += 'Password requirements not met.';
-                    } else {
-                        errorMessage += error.message || 'Please try again.';
-                    }
-
-                    throw new Error(errorMessage);
-                }
-
-                // Check if user was created successfully
-                if (!data || !data.user) {
-                    throw new Error('Registration failed. No user data returned.');
-                }
+                if (error) throw error;
 
                 registerSuccess.textContent = 'Account created! Please check your email to verify your account, then log in.';
                 registerSuccess.classList.remove('hidden');
@@ -737,8 +707,7 @@
                 document.getElementById('register-email').value = '';
                 document.getElementById('register-password').value = '';
             } catch (error) {
-                console.error('Registration error:', error);
-                registerError.textContent = error.message || 'An unexpected error occurred. Please try again.';
+                registerError.textContent = error.message;
                 registerError.classList.remove('hidden');
                 registerSuccess.classList.add('hidden');
             }
@@ -1341,27 +1310,11 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
 
         // --- Initialization ---
         async function init() {
-            // Initialize Supabase with retry logic
-            let supabaseInitialized = false;
-            let retryCount = 0;
-            const maxRetries = 3;
-
-            while (!supabaseInitialized && retryCount < maxRetries) {
-                supabaseInitialized = initSupabase();
-                if (!supabaseInitialized) {
-                    retryCount++;
-                    if (retryCount < maxRetries) {
-                        console.log(`Supabase initialization attempt ${retryCount}/${maxRetries}`);
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    }
-                }
-            }
-
-            if (!supabaseInitialized) {
-                console.error('Failed to initialize Supabase client after multiple attempts');
-                // Continue with limited functionality
-            }
-
+            // Load Supabase configuration from Netlify Function
+            await loadSupabaseConfig();
+            
+            // Initialize Supabase
+            initSupabase();
             initAuthListeners();
 
             // Check if user is already logged in
@@ -1643,25 +1596,16 @@ Victoria Seychelles Int'l Airport,SEZ,-4.6743,55.5219`;
             setTimeout(function() {
                 const loadingScreen = document.getElementById('loading-screen');
                 const app = document.getElementById('app');
-
+                
                 if (loadingScreen) loadingScreen.classList.remove('is-active');
                 if (app) app.style.display = 'flex';
-
+                
                 // Load Leaflet after initial render
                 const leafletScript = document.createElement('script');
                 leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
                 leafletScript.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
                 leafletScript.crossOrigin = '';
-                leafletScript.onload = function() {
-                    // Ensure Supabase is loaded before initializing
-                    if (typeof window.supabase !== 'undefined') {
-                        init();
-                    } else {
-                        console.error('Supabase client not loaded yet');
-                        // Retry after a short delay
-                        setTimeout(init, 1000);
-                    }
-                };
+                leafletScript.onload = init; // Call init right after Leaflet loads
                 document.head.appendChild(leafletScript);
             }, 800);
         });
