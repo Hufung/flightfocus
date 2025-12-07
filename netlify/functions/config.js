@@ -11,11 +11,11 @@ exports.handler = async (event, context) => {
     }
 
     // Get credentials from Netlify environment variables
-    const SUPABASE_DATABASE_URL = process.env.SUPABASE_DATABASE_URL;
-    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
     // Validate credentials exist
-    if (!SUPABASE_DATABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!supabaseUrl || !supabaseAnonKey) {
         return {
             statusCode: 500,
             body: JSON.stringify({ 
@@ -32,8 +32,8 @@ exports.handler = async (event, context) => {
             'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
         },
         body: JSON.stringify({
-            SUPABASE_DATABASE_URL,
-            SUPABASE_ANON_KEY
+            supabaseUrl,
+            supabaseAnonKey
         })
     };
 };
