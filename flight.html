@@ -394,35 +394,16 @@
     <!-- Modified JavaScript for the Inflight Session -->
     <script>
         // --- SUPABASE CONFIGURATION ---
-        // Credentials are fetched from Netlify Function (stored in environment variables)
-        // This keeps sensitive data out of the HTML source code
-        let supabaseUrl = null;
-        let supabaseAnonKey = null;
+        const SUPABASE_URL = 'REPLACE_WITH_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'REPLACE_WITH_SUPABASE_ANON_KEY';
 
         let supabaseClient = null;
         let currentUser = null;
 
-        // Fetch Supabase credentials from Netlify Function
-        async function loadSupabaseConfig() {
-            try {
-                const response = await fetch('/.netlify/functions/config');
-                if (!response.ok) {
-                    throw new Error(`Failed to load config: ${response.statusText}`);
-                }
-                const data = await response.json();
-                supabaseUrl = data.supabaseUrl;
-                supabaseAnonKey = data.supabaseAnonKey;
-                return true;
-            } catch (error) {
-                console.error('Error loading Supabase config:', error);
-                return false;
-            }
-        }
-
         // Initialize Supabase client
         async function initSupabase() {
-            if (typeof window.supabase !== 'undefined' && supabaseUrl && supabaseAnonKey) {
-                supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+            if (typeof window.supabase !== 'undefined' && SUPABASE_URL !== 'REPLACE_WITH_SUPABASE_URL') {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 try {
                     const { data: { user } } = await supabaseClient.auth.getUser();
                     currentUser = user;
@@ -683,10 +664,10 @@
                 date: new Date().toISOString()
             };
 
-            // If user is logged in and Supabase is available, save to database
+            // Only save to Supabase if user is logged in
             if (supabaseClient && currentUser) {
                 try {
-                    const { error } = await supabaseClient.from('flights').insert({
+                    const { data, error } = await supabaseClient.from('flights').insert({
                         user_id: currentUser.id,
                         flight_code: flightRecord.flightCode,
                         departure_code: flightRecord.departure.code,
@@ -699,21 +680,20 @@
                         duration: flightRecord.duration,
                         distance: flightRecord.distance,
                         completed: flightRecord.completed
-                    });
+                    }).select();
 
                     if (error) throw error;
+                    
+                    // Return the Supabase ID if available
+                    if (data && data.length > 0) {
+                        return data[0].id;
+                    }
                 } catch (error) {
                     console.error('Error saving flight to Supabase:', error);
-                    // Fallback to localStorage
-                    let passport = JSON.parse(localStorage.getItem('flightFocusPassport') || '[]');
-                    passport.push(flightRecord);
-                    localStorage.setItem('flightFocusPassport', JSON.stringify(passport));
+                    throw error; // Re-throw to handle at call site
                 }
             } else {
-                // Save to localStorage for non-logged-in users
-                let passport = JSON.parse(localStorage.getItem('flightFocusPassport') || '[]');
-                passport.push(flightRecord);
-                localStorage.setItem('flightFocusPassport', JSON.stringify(passport));
+                console.warn('User not logged in. Flight record not saved. Please log in to save your flight history.');
             }
 
             return flightRecord.id;
@@ -872,9 +852,6 @@
         }
 
         async function init() {
-            // Load Supabase configuration from Netlify Function
-            await loadSupabaseConfig();
-            
             // Initialize Supabase and check auth
             await initSupabase();
 
