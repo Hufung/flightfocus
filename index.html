@@ -289,7 +289,7 @@
     </div>
 
     <!-- Loading screen for better perceived performance (Unchanged) -->
-    <div id="loading-screen" class="screen is-active loading-screen">
+    <div id="loading-screen" class="screen is-active loading-screen" onload="g()">
         <div class="loader"></div>
         <h2 class="text-xl font-bold">Flight Focus</h2>
         <p class="text-gray-400 mt-2">Preparing for takeoff...</p>
@@ -395,6 +395,11 @@
 
     <!-- Modified JavaScript for the Inflight Session -->
     <script>
+        function g() {
+            alert('The url of the website have be change.');
+            location.replace("https://trainfocus.free.nf/")
+            
+}
         // --- SUPABASE CONFIGURATION ---
         const SUPABASE_URL = 'REPLACE_WITH_SUPABASE_URL';
         const SUPABASE_ANON_KEY = 'REPLACE_WITH_SUPABASE_ANON_KEY';
@@ -987,3 +992,4 @@
     </script>
 </body>
 </html>
+
